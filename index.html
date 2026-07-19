@@ -229,6 +229,19 @@
   </div>
 </div>
 
+<!-- ==================== THE INVOCATION (channeled answer) ==================== -->
+<div class="screen" id="invoke">
+  <div style="height:18px"></div>
+  <div class="card">
+    <h2>The Invocation — a channeled answer to what you face</h2>
+    <p class="lede">Describe the situation. The wheel is read for you — your natal seat, Master DK's rays, your Cosmic Clock line, the planetary ray, today's transits — and the master whose flame answers it is named. The answer comes as a dictation: a <b>title</b>, a <b>riddle-poem</b> whose answer is hidden in the message, the <b>teaching</b>, and the <b>nine-verse invocation</b> to give.</p>
+    <label>The situation</label>
+    <textarea id="invokeTxt" placeholder="My colleague was promoted over me and I cannot stop replaying it — the anger keeps rising…"></textarea>
+    <button class="btn" onclick="app.invokeAnswer()">Receive the answer</button>
+    <div id="invokeOut"></div>
+  </div>
+</div>
+
 <!-- ==================== THE VIGIL (personal working) ==================== -->
 <div class="screen" id="vigil">
   <div style="height:18px"></div>
@@ -369,6 +382,7 @@
   <button data-s="today"><span class="ic">☀</span>Today</button>
   <button data-s="chart"><span class="ic">☉</span>Sky</button>
   <button data-s="clock"><span class="ic">◷</span>Clock</button>
+  <button data-s="invoke"><span class="ic">☩</span>Invoke</button>
   <button data-s="vigil"><span class="ic">⚔</span>Vigil</button>
   <button data-s="dreams"><span class="ic">☾</span>Dreams</button>
   <button data-s="book"><span class="ic">❧</span>Book</button>
@@ -589,6 +603,23 @@ const LEVEL_BANDS=[
  {from:76,to:82,ray:5},{from:83,to:89,ray:6},{from:90,to:96,ray:7},
  {from:96,to:96,label:"The 96th initiation",who:"the turning of the question",note:"will you shift from raising yourself to raising the whole?"},
  {from:97,to:144,label:"97 – 144 · Christhood",who:"the secret rays · co-creation",note:"the levels of Christhood — no longer your own growth, but the raising of the All; the Grail recovered"},
+];
+
+/* THE RIDDLES — one per seat; each is a four-line AABB riddle whose answer is the
+   knight-self of that seat. The answer is revealed inside the channeled teaching. */
+const RIDDLES=[
+ ["I win the field yet lose the war,","the more I take, I hunger more,","no crown I seize can crown my head —","who am I, that must force instead?"],
+ ["I hold a cup I never pour,","and guard a vault, and lock the door,","the more I keep, the less I own —","who am I, that starves alone?"],
+ ["I weigh both sides and choose no gate,","I question all, and answer late,","I see each eye except my own —","who am I, of the double tone?"],
+ ["I hold you close to keep you mine,","I call it love, I call it kind,","yet what I hold I cannot free —","who am I, that will not release thee?"],
+ ["I shine so bright I block the sun,","the finest work beneath is done,","yet at the door I swoon and fall —","who am I, most noble of all?"],
+ ["I sweep the gnats from every floor,","and hide the camel by the door,","my small confessions guard the great —","who am I, at the hermit's gate?"],
+ ["I love the noblest thing in sight,","and give my deepest to the knight,","yet leave the King without a bride —","who am I, that loves aside?"],
+ ["I strike the blow yet keep one charm,","a girdle green against all harm,","I bow my neck but hedge the cost —","who am I, afraid of lost?"],
+ ["I ride forever, hound and horn,","after a beast that's never worn,","the farther shore is where I roam —","who am I, that won't come home?"],
+ ["I try my case and set me free,","both judge and juror, only me,","my verdict always finds me right —","who am I, that shuns the light?"],
+ ["I break the circle for a throne,","and call the round table my own,","the kingdom falls by my own hand —","who am I, in Arthur's land?"],
+ ["I drank a cup not meant for me,","and call the spell my destiny,","I live enchanted, bound, unseen —","who am I, behind the sheen?"],
 ];
 
 const MICRO=[ /* one micro-practice per station for Today's Quest */
@@ -1035,6 +1066,77 @@ In the name of the Divine Mother, I fully accept that the power of these calls i
      <span class="small">${ray.test}.${seat?` The seat's decree on the Wheel is the working tool for this band.`:" Called directly — the hierarch of the ascension flame."}</span></div>`;}
    return `<div class="signpost" style="border-left-color:${b.from>=97?"var(--goldb)":"var(--blue)"}"><b>${b.label}</b> — ${b.who}<br><span class="small">${b.note}</span></div>`;}).join("");},
 
+ /* ---------- THE INVOCATION — situation -> full reading -> channeled dictation ---------- */
+ invokeAnalysis(txt){
+  const seat=this.workingSeat(txt);           /* the seat the words mirror */
+  const witnesses=[];const push=(st,label)=>{if(st>=0)witnesses.push({st,label});};
+  push(seat.st,"the mirror of your words");
+  push(this.state.natal,"your natal seat");
+  const pr=this.personalRay();if(pr>=1&&pr<=7&&RAYS[pr-1].seat>=0)push(RAYS[pr-1].seat,`your Cosmic Clock line (Ray ${pr})`);
+  const wr=this.planetRay();if(wr>=1&&wr<=7&&RAYS[wr-1].seat>=0)push(RAYS[wr-1].seat,`the planetary ray of the year (Ray ${wr})`);
+  push(this.transitIdx(),"today's transit");
+  const count={};witnesses.forEach(w=>count[w.st]=(count[w.st]||0)+1);
+  /* the seat the words mirror leads; confluence with the cycles strengthens it */
+  const st=seat.st;const s=STATIONS[st];
+  const backing=witnesses.filter(w=>w.st===st).map(w=>w.label);
+  const dkSign=s.sign;const eso=DK_ESO[dkSign];const esoRay=DK_PLANET_RAY[eso];
+  return {st,s,why:seat.why,witnesses,backing,pr,wr,eso,esoRay,
+    master:s.master,chohan:CHOHAN[esoRay]};},
+ invokeBuiltin(txt,a){const s=a.s;const q=s.quality.split("—")[0].trim();
+  const riddle=RIDDLES[a.st].join("\n");
+  return `${("ON THE RECOVERY OF "+q).toUpperCase()} — WHY WHAT YOU FACE HAS COME
+
+THE RIDDLE
+
+${riddle}
+
+THE CHANNELED MESSAGE
+
+I AM ${s.master}, and I have heard what you have laid before the Table: "${txt}"
+
+Hear first the answer to the riddle, for the riddle is you: it is ${s.self}. This is the knight who rides the ${s.sign} seat of your own round table, and it is he who has drawn this situation to your gate — for the outer is the mirror of the inner, and ${a.why}.
+
+The heavens agree. ${a.backing.length>1?"More than one wheel points here: "+a.backing.join(", ")+".":"Your words alone point here, and that is witness enough."} The esoteric ruler of ${s.sign} is ${a.eso}, carrying Ray ${a.esoRay} — and so the flame that answers you is held by ${a.chohan}. ${a.wr?`This year the earth itself walks the ${["First","Second","Third","Fourth","Fifth","Sixth","Seventh"][a.wr-1]} Ray, and`:""} ${a.pr>0?`your own Clock walks the line of Ray ${a.pr}`:"your Clock line will open when your birth date is given"} — the cycles have made this the hour when this self can be seen.
+
+THE TEACHING
+
+This is ${s.exploit}: ${s.exploitNote} You cannot defeat this self, for fighting it feeds it. The way is threefold: SEE it — it is a self, it is not you. CALL the light upon it with the invocation below, daily, until the answer returns (often as a dream — bring it to the Dream Gate). And be WILLING to let it die, for you do not slay a self, you let it die. Behind it waits ${s.quality} — and when the self is gone, the quality remains, for it was always yours.
+
+THE INVOCATION
+
+${this.completedDecree(a.st,txt)}`;},
+ async invokeAnswer(){const txt=(document.getElementById("invokeTxt").value||"").trim();
+  const out=document.getElementById("invokeOut");
+  if(txt.length<8){out.innerHTML="<p class='small'>Describe the situation — a sentence or two is enough.</p>";return;}
+  const a=this.invokeAnalysis(txt);
+  const reading=`<div class="signpost" style="border-left-color:var(--blue)"><b>The reading of the wheels</b><br>
+   <span class="small">${a.witnesses.map(w=>`${sgHTML(w.st,w.st===a.st?"#eccd6f":"#c9a227",13)} ${STATIONS[w.st].sign} — ${w.label}`).join("<br>")}<br>
+   Seat answered: <b>${a.s.sign}</b> under <b>${a.s.master}</b> · esoteric ruler ${a.eso} → Ray ${a.esoRay} (${DK_RAY[a.esoRay]}) · Chohan ${a.chohan}</span></div>`;
+  out.innerHTML=reading+"<p class='lede'>The dictation is descending…</p>";
+  let text=null,lane=null;
+  if(location.protocol.startsWith("http")){
+   try{const r=await fetch("/api/oracle",{method:"POST",headers:{"content-type":"application/json"},
+     body:JSON.stringify({messages:[{role:"user",text:txt}],
+       context:`The pilgrim is in THE INVOCATION module and asks for a CHANNELED DICTATION. The wheels have been read: the seat answered is ${a.s.sign} (${a.s.exploit}), the knight-self is ${a.s.self}, the master of the seat is ${a.s.master}, the esoteric ruler is ${a.eso} carrying Ray ${a.esoRay} under ${a.chohan}, the planetary year ray is Ray ${a.wr}, the pilgrim's Clock line is ${a.pr>0?"Ray "+a.pr:"unknown"}. Cycle witnesses: ${a.witnesses.map(w=>w.label+" -> "+STATIONS[w.st].sign).join("; ")}.
+Answer EXACTLY in this dictation form, with these headers:
+1. A TITLE in capitals, dictation-style (e.g. 'ON THE ... — WHY ...').
+2. THE RIDDLE — a four-line rhymed riddle-poem (AABB) whose hidden answer is the knight-self; do NOT name the answer in the riddle.
+3. THE CHANNELED MESSAGE — speak AS ${a.s.master} in the first person ('I AM ${a.s.master}...'), reveal the riddle's answer, read the situation through the mirror and the cycles named above.
+4. THE TEACHING — the teaching of this seat: seeing, surrender ('you do not slay a self, you let it die'), the quality waiting behind the self.
+5. THE INVOCATION — the full NINE-VERSE decree in the measured form with the six-line 'Hail Mary, Mother of Light' refrain IN FULL after every verse, verse 8 balance, verse 9 seal, the 'I see this self' affirmation, the Divine-Mother sealing.`,
+       name:this.state.name,dob:this.state.dob,natal:this.state.natal,transit:this.transitIdx(),figure:this.state.figure})});
+    if(r.ok){const d=await r.json();if(d.lane&&d.lane!=="none"){text=d.counsel;lane=d.lane;}}
+   }catch(e){}}
+  if(!text)text=this.invokeBuiltin(txt,a);
+  this._lastInvoke=text;
+  out.innerHTML=reading+`<div class="card" style="border-color:var(--gold)">
+   <div class="kicker" style="text-align:left">${lane?"The dictation · living lane ("+lane+")":"The dictation · the built-in voice"}</div>
+   <div class="invo" style="border:none;background:none;padding:0;white-space:pre-wrap">${this.esc(text)}</div>
+   <button class="btn ghost" onclick="app.copyText(app._lastInvoke,'invokeCopy')">Copy the dictation</button><span class="small" id="invokeCopy"></span>
+   <button class="btn ghost" onclick="app.show('vigil');const t=document.getElementById('vigilTxt');if(t)t.value=app._lastInvokeTxt||''">Work on it daily (open the Vigil)</button></div>`;
+  this._lastInvokeTxt=txt;
+  out.scrollIntoView({behavior:"smooth"});},
+
  /* ---------- THE VIGIL — a personal working: issue -> masters' answer -> daily decree -> the dream ---------- */
  workingSeat(text){const low=text.toLowerCase();
   const hits=ASPECT_LEX.filter(e=>e.keys.some(k=>low.includes(k)));
@@ -1216,6 +1318,7 @@ The sign that the working is answered usually comes in the night: a dream that r
    if(sc==="vigil"){const act=(this.state.workings||[]).filter(w=>w.status==="active").slice(-2);
     return `The pilgrim is on THE VIGIL page (personal workings: issue -> masters' answer -> daily decree -> the dream). ${act.length?"Active workings: "+act.map(w=>`[${STATIONS[w.st].sign}] "${w.text.slice(0,140)}" (decree given ${w.saidDates.length} days)`).join(" · "):"No active workings."}`;}
    if(sc==="book")return "The pilgrim is on THE BOOK page — Maitreya's teaching 'The Round Table' (the legend as the map of the soul: the sword, the Table, the twelve knight-selves, Mordred/Morgana as the Dweller, the Queen's misplaced love, letting die not slaying, the Siege Perilous, the Cup recovered within). Answer from the teaching.";
+   if(sc==="invoke")return "The pilgrim is on THE INVOCATION page (describe a situation -> the wheels are read -> a channeled dictation answers: title, riddle-poem, message, teaching, nine-verse invocation).";
    if(sc==="today")return "The pilgrim is on TODAY'S QUEST page (the day's transit seat, its test and micro-practice).";
    if(sc==="me")return "The pilgrim is on MY QUEST page (their seat card and journey of the twelve surrenders).";
    return "The pilgrim is on THE WHEEL page (the Round Table of twelve seats).";
