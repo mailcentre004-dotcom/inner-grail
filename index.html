@@ -1,5 +1,7 @@
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1">
+<meta name="theme-color" content="#0a0d19">
+<link rel="manifest" href="manifest.webmanifest">
 <title>The Inner Grail — the Journey of the Round Table</title>
 <style>
   :root{
@@ -182,7 +184,14 @@
 </div>
 
 <!-- ==================== TODAY ==================== -->
-<div class="screen" id="today"><div style="height:18px"></div><div id="todayFull"></div></div>
+<div class="screen" id="today"><div style="height:18px"></div>
+  <div class="card" id="bellCard">
+    <h2>The morning bell</h2>
+    <p class="lede">Let the quest call you each day — one bell at dawn with the seat the heavens light and its micro-practice.</p>
+    <button class="btn" onclick="app.bellEnable()">🔔 Set the morning bell</button>
+    <span class="small" id="bellNote"></span>
+  </div>
+  <div id="todayFull"></div></div>
 
 <!-- ==================== CHART / SKY ==================== -->
 <div class="screen" id="chart">
@@ -254,6 +263,11 @@
     <div id="vigilNew"></div>
   </div>
   <div class="card">
+    <h2>The nine-day watch</h2>
+    <p class="lede">The corpus rhythm: one seat, nine days — the decree given daily, the seat's part of the book read, the nights watched. Choose a seat and keep the watch.</p>
+    <div id="watch9Box"></div>
+  </div>
+  <div class="card">
     <h2>Your workings</h2>
     <p class="lede">Each working is a figure-eight in motion: the daily decree is the <b>outgoing current</b>; the dream, the prompting, the shift is the <b>return current</b>. Keep the decree daily and watch the nights.</p>
     <div id="vigilList"></div>
@@ -269,6 +283,7 @@
     <label>The dream</label>
     <textarea id="dreamTxt" placeholder="I was crossing a bridge over dark water, carrying something heavy on my back..."></textarea>
     <button class="btn" onclick="app.readDream()">Read the dream</button>
+    <button class="btn ghost" onclick="app.dreamMic(this)">🎙 Speak the dream</button>
     <div id="dreamOut"></div>
   </div>
   <div class="card">
@@ -306,9 +321,21 @@
     <div id="knightDeep"></div>
   </div>
   <div class="card">
+    <h2>The Rosary of the Grail — the guided round</h2>
+    <p class="lede">The rosary from the book, given step by step — each bead a verse, the refrain in full, spoken aloud with you if you wish.</p>
+    <button class="btn" onclick="app.rosaryStart()">Begin the Rosary</button>
+    <div id="rosaryBox" style="display:none"></div>
+  </div>
+  <div class="card">
     <h2>Read the book</h2>
     <div id="chapterList"></div>
     <div class="invo" id="chapterText" style="display:none;white-space:pre-wrap"></div>
+  </div>
+  <div class="card">
+    <h2>The latest word — new dictations</h2>
+    <p class="lede">Fresh dictations from the masters as they are published (ascendedmasterlight.com).</p>
+    <button class="btn ghost" onclick="app.loadFeed()">Fetch the latest</button>
+    <div id="feedBox"></div>
   </div>
 </div>
 
@@ -344,6 +371,11 @@
     <button class="btn ghost" onclick="app.saveCard()">Keep the card</button>
     <button class="btn ghost" onclick="app.toggleFigure()">Change my figure (Knight ⇄ Lady)</button>
     <span class="small" id="cardNote"></span>
+  </div>
+  <div class="card">
+    <h2>The scroll of your quest — the timeline</h2>
+    <p class="lede">Your own legend, written as you walk it: quests, workings, decrees, dreams, calls, surrenders.</p>
+    <div id="timeline"></div>
   </div>
   <div class="card">
     <h2>The Journey</h2>
@@ -622,6 +654,26 @@ const RIDDLES=[
  ["I drank a cup not meant for me,","and call the spell my destiny,","I live enchanted, bound, unseen —","who am I, behind the sheen?"],
 ];
 
+/* per-ray hierarchy (flowing-river-exercises TOC): Chohan (RAYS[].chohan) · Archangel · Elohim pair */
+const ARCHANGEL={1:"Archangel Michael",2:"Archangel Jophiel",3:"Archangel Chamuel",4:"Archangel Gabriel",
+ 5:"Archangel Raphael",6:"Archangel Uriel",7:"Archangel Zadkiel and Holy Amethyst"};
+const ELOHIM={1:"Hercules and Amazonia",2:"Apollo and Lumina",3:"Heros and Amora",4:"Astrea and Purity",
+ 5:"Cyclopea and Virginia",6:"Peace and Aloha",7:"Arcturus and Victoria"};
+/* the four lower bodies (identity, mental, emotional, physical — corpus) — where the resistance lives */
+const BODY_LEX=[
+ {body:"identity",keys:["who am i","identity","worthless","i am not","unworthy","my purpose","meaningless","don't belong","imposter","not good enough","what am i"],
+  note:"the IDENTITY body — the structure sits in your sense of who you are; the deepest layer, where the I AM Presence extends first"},
+ {body:"mental",keys:["thoughts","thinking","overthink","can't stop thinking","belief","argument","logic","round and round","loop","analyz","figure out","decision","confus"],
+  note:"the MENTAL body — a closed loop of thought, projecting that the change must happen out there"},
+ {body:"emotional",keys:["feel","feeling","fear","anger","anxiety","sad","grief","resent","panic","overwhelm","hurt","rage","worry","jealous","shame"],
+  note:"the EMOTIONAL body — the projection stirs and agitates the feelings toward fear instead of love"},
+ {body:"physical",keys:["body","health","sick","pain","tired","sleep","insomnia","money","bills","job","house","physical","exhaust","illness"],
+  note:"the PHYSICAL body and its world — the outermost layer, where the inner structures precipitate"},
+];
+/* transit-to-natal aspects (the dual wheel: inner=natal, outer=transits; hard aspects time the tests) */
+const ASPECTS=[[0,"conjunct",true],[60,"sextile",false],[90,"square",true],[120,"trine",false],[180,"opposite",true]];
+const ASPECT_ORB=3;
+
 const MICRO=[ /* one micro-practice per station for Today's Quest */
  "Once today, when you feel the push to force an outcome — pause, and let the outcome be taken by a higher hand.",
  "Give one thing away today — time, praise, or a possession — and watch what the open hand receives.",
@@ -746,7 +798,10 @@ const app={
   if(id==="dreams")this.renderDiary();
   if(id==="vigil")this.renderVigil();
   if(id==="clock")this.renderClock();
-  if(id==="book")this.renderBook();},
+  if(id==="book")this.renderBook();
+  if(id==="me"){this.renderTimeline();}
+  if(id==="today"){const n=document.getElementById("bellNote");
+   if(n)n.textContent=this.state.bell?" The bell is set — the quest calls you each new day this app is opened.":"";}},
 
  /* ---------- wheel ---------- */
  wheel(){const svg=document.getElementById("wheel");const cx=200,cy=200,R=156,r=25;let g="";
@@ -779,12 +834,16 @@ const app={
    <p><b>The quality to free:</b> ${s.quality}<br><b>The knight-self:</b> ${s.self}</p>
    <div class="invo">${this.invocation(i)}</div>
    <button class="btn ghost" onclick="app.copyText(app.invocation(${i}),'invCopied')">Copy the decree</button>
+   <button class="btn ghost" onclick="app.speakToggle(()=>app.invocation(${i}),this)">🕭 Give it with me</button>
    <span class="small" id="invCopied"></span><br>
    <button class="btn" onclick="app.surrender(${i})">${done?"This seat is surrendered ✦":"I have seen this self — surrender the seat"}</button>
   </div>`;
   document.getElementById("stationPanel").scrollIntoView({behavior:"smooth"});},
 
- surrender(i){const was=this.state.done[i];this.state.done[i]=!was;this.save();
+ surrender(i){const was=this.state.done[i];this.state.done[i]=!was;
+  this.state.doneDates=this.state.doneDates||{};
+  if(!was)this.state.doneDates[i]=this.todayKey();else delete this.state.doneDates[i];
+  this.save();
   if(!was){this._flare=i;
    const n=this.state.done.filter(Boolean).length;
    if(n===12){this.ceremony("The Siege Perilous opens",
@@ -1043,6 +1102,12 @@ In the name of the Divine Mother, I fully accept that the power of these calls i
     <span class="small">Revolutions completed: <b>${rev}</b>.${rev>=3?" Three rounds are walked — the <b>centre (13th Ray of Creative Flow)</b> stands open to you: from it, go straight to any line still unresolved. Let the step be intuitive, not decided by the outer mind.":""}</span></div>`;}
   else h+=`<p class="small">Add your birth date on the welcome screen to see your personal clock line.</p>`;
   h+=`<p class="small">Mother Mary: focus first on the planetary cycle; if you have attention left, walk both at once — the personal and the planetary.</p>`;
+  const rot=this.serviceRotation();
+  if(rot){const calls=(this.state.planetCalls||[]).length;const given=(this.state.planetCalls||[]).includes(this.todayKey());
+   h+=`<div class="signpost" style="border-left-color:var(--goldb)"><b>♁ The planetary service — the call for the world</b><br>
+    <span class="small">Mother Mary's rotation for the Year of Ray ${rot.wr}: today the call goes to <b>${rot.role} — ${rot.name}</b>. One day the Chohan, the next the Archangel, the next the Elohim. Hold the vision that the people of earth pass this year's initiation.</span><br>
+    <button class="btn ${given?"ghost":""}" style="margin:8px 6px 0 0;padding:6px 14px" ${given?"disabled":""} onclick="app.serviceCall()">${given?"✓ the call is given today":"I gave the call for the world today"}</button>
+    <span class="small">${calls} call${calls===1?"":"s"} given for the planet.</span></div>`;}
   info.innerHTML=h;
   this.renderSynergy();this.renderLevels();},
  renderSynergy(){const el=document.getElementById("clockSynergy");if(!el)return;
@@ -1065,6 +1130,150 @@ In the name of the Divine Mother, I fully accept that the power of these calls i
     return `<div class="signpost"><b>Levels ${b.from}–${b.to} · Ray ${b.ray}: ${ray.name}</b> — under <b>${ray.chohan}</b>${seat?` (his seat: ${seat.sign})`:""}<br>
      <span class="small">${ray.test}.${seat?` The seat's decree on the Wheel is the working tool for this band.`:" Called directly — the hierarch of the ascension flame."}</span></div>`;}
    return `<div class="signpost" style="border-left-color:${b.from>=97?"var(--goldb)":"var(--blue)"}"><b>${b.label}</b> — ${b.who}<br><span class="small">${b.note}</span></div>`;}).join("");},
+
+ /* ---------- the latest word (new dictations feed) ---------- */
+ async loadFeed(){const box=document.getElementById("feedBox");if(!box)return;
+  if(!location.protocol.startsWith("http")){box.innerHTML="<p class='small'>The feed needs the live app (local or deployed).</p>";return;}
+  box.innerHTML="<p class='lede'>Listening for the latest word…</p>";
+  try{const r=await fetch("/api/feed");const d=await r.json();
+   if(!d.items||!d.items.length){box.innerHTML="<p class='small'>No new word reached the gate — try again later.</p>";return;}
+   box.innerHTML=d.items.slice(0,8).map(it=>`<div class="signpost" style="padding:8px 12px"><b>${this.esc(it.title)}</b><br><span class="small">${this.esc(it.date||"")} · <a href="${this.esc(it.link)}" target="_blank" rel="noopener" style="color:var(--goldb)">read the dictation ↗</a></span></div>`).join("");
+  }catch(e){box.innerHTML="<p class='small'>The feed could not be reached from here.</p>";}},
+
+ /* ---------- VOICE: give the decree aloud (TTS) + speak the dream (STT) ---------- */
+ speak(text,btn){if(!window.speechSynthesis){alert("This device has no speech voice.");return;}
+  speechSynthesis.cancel();
+  const blocks=text.split(/\n\n+/).filter(b=>b.trim());
+  blocks.forEach(b=>{const u=new SpeechSynthesisUtterance(b.replace(/\s+/g," ").trim());
+   u.rate=0.88;u.pitch=0.95;speechSynthesis.speak(u);});
+  if(btn)btn.textContent="◼ Stop";},
+ stopSpeak(){if(window.speechSynthesis)speechSynthesis.cancel();},
+ speakToggle(getText,btn){if(window.speechSynthesis&&speechSynthesis.speaking){this.stopSpeak();if(btn)btn.textContent="🕭 Give it with me";return;}
+  this.speak(getText(),btn);},
+ dreamMic(btn){const SR=window.SpeechRecognition||window.webkitSpeechRecognition;
+  if(!SR){alert("Voice input is not supported in this browser — Chrome and Edge carry it.");return;}
+  if(this._rec){this._rec.stop();this._rec=null;btn.textContent="🎙 Speak the dream";return;}
+  const rec=new SR();this._rec=rec;rec.lang="en-US";rec.continuous=true;rec.interimResults=true;
+  const box=document.getElementById("dreamTxt");const base=box.value?box.value+" ":"";
+  rec.onresult=e=>{let t="";for(let i=0;i<e.results.length;i++)t+=e.results[i][0].transcript;box.value=base+t;};
+  rec.onend=()=>{this._rec=null;btn.textContent="🎙 Speak the dream";};
+  rec.start();btn.textContent="◼ Listening — tap to stop";},
+
+ /* ---------- transit-to-natal aspects (dual wheel: inner=natal, outer=transits) ---------- */
+ transitAspects(natal,trans){if(!natal||!trans)return [];
+  const out=[];
+  for(const t of trans)for(const n of natal){
+   if(t.name==="Moon"&&n.name==="Moon")continue;
+   let d=Math.abs(t.lon-n.lon)%360;if(d>180)d=360-d;
+   for(const [ang,name,hard] of ASPECTS){const orb=Math.abs(d-ang);
+    if(orb<=ASPECT_ORB)out.push({t:t.name,n:n.name,name,hard,orb:+orb.toFixed(1),seat:n.sign});}}
+  return out.sort((a,b)=>(b.hard-a.hard)||(a.orb-b.orb)).slice(0,10);},
+ /* the Ascendant (ported from the deep-dive engine: RAMC via sidereal time -> Asc) */
+ ascendant(date,latDeg,lonEastDeg){if(!window.Astronomy)return null;
+  try{const gast=Astronomy.SiderealTime(date);        /* hours */
+   const ramc=((gast*15+lonEastDeg)%360+360)%360;
+   const T=(date.getTime()/86400000+2440587.5-2451545.0)/36525.0;
+   const eps=(23.439291-0.0130042*T)*Math.PI/180;
+   const rr=ramc*Math.PI/180,lr=latDeg*Math.PI/180;
+   return (Math.atan2(-Math.cos(rr),Math.sin(rr)*Math.cos(eps)+Math.tan(lr)*Math.sin(eps))*180/Math.PI+360)%360;
+  }catch(e){return null;}},
+
+ /* ---------- the four lower bodies — where the resistance lives ---------- */
+ bodyRead(txt){const low=txt.toLowerCase();
+  const hits=BODY_LEX.map(b=>({b,score:b.keys.reduce((a,k)=>a+(low.includes(k)?1:0),0)})).filter(x=>x.score>0)
+   .sort((a,b)=>b.score-a.score);
+  return hits.length?hits[0].b:null;},
+
+ /* ---------- the planetary service (Mother Mary's rotation for the year-ray) ---------- */
+ serviceRotation(){const wr=this.planetRay();if(wr<1||wr>7)return null;
+  const day=Math.floor(Date.now()/86400000)%3;
+  const who=[["the Chohan",RAYS[wr-1].chohan],["the Archangel",ARCHANGEL[wr]],["the Elohim",ELOHIM[wr]]][day];
+  return {wr,role:who[0],name:who[1]};},
+ serviceCall(){this.state.planetCalls=this.state.planetCalls||[];
+  const k=this.todayKey();if(!this.state.planetCalls.includes(k))this.state.planetCalls.push(k);
+  this.save();this.renderClock();},
+
+ /* ---------- the nine-day watch (one seat, nine days, decree + reading each day) ---------- */
+ startWatch9(st){this.state.watch9={st,start:this.todayKey(),days:[]};this.save();this.renderVigil();},
+ watch9Today(){const w=this.state.watch9;if(!w)return;
+  const k=this.todayKey();if(!w.days.includes(k))w.days.push(k);
+  this.save();if(w.days.length>=9){const s=STATIONS[w.st];
+   this.ceremony(`The nine-day watch of ${s.sign} is complete`,`Nine days the flame of ${s.master} was called. The watch is sealed — carry its quality of ${s.quality.split("—")[0].trim()} forward, and bring what the nights showed you to the Dream Gate.`);
+   this.state.watch9=null;this.save();}
+  this.renderVigil();},
+
+ /* ---------- the rosary mode (guided, with beads) ---------- */
+ rosaryStart(){const b=this.bookData();if(!b)return;
+  const ch=b.chapters.find(c=>/Rosary/i.test(c.t));if(!ch)return;
+  this._rosary={parts:ch.x.split(/\n\n+/).filter(p=>p.trim()),i:0};this.rosaryShow();},
+ rosaryShow(){const r=this._rosary;if(!r)return;const el=document.getElementById("rosaryBox");if(!el)return;
+  const beads=Array.from({length:r.parts.length},(_,k)=>`<span style="display:inline-block;width:9px;height:9px;border-radius:50%;margin:1px;background:${k<=r.i?"var(--goldb)":"var(--line)"}"></span>`).join("");
+  el.style.display="block";
+  el.innerHTML=`<div class="kicker" style="text-align:left">The Rosary of the Grail · ${r.i+1} / ${r.parts.length}</div>
+   <div style="margin:6px 0">${beads}</div>
+   <div class="invo" style="white-space:pre-wrap">${this.esc(r.parts[r.i])}</div>
+   <button class="btn ghost" ${r.i===0?"disabled":""} onclick="app._rosary.i--;app.rosaryShow()">Back</button>
+   <button class="btn" onclick="if(app._rosary.i<app._rosary.parts.length-1){app._rosary.i++;app.rosaryShow();}else{document.getElementById('rosaryBox').style.display='none';app._rosary=null;app.ceremony('The Rosary is given','The round is complete — the Cup at the centre received it.');}">${"Continue"}</button>
+   <button class="btn ghost" onclick="app.speakToggle(()=>app._rosary?app._rosary.parts[app._rosary.i]:'',this)">🕭 Give it with me</button>`;
+  el.scrollIntoView({behavior:"smooth"});},
+
+ /* ---------- the Journey timeline ---------- */
+ renderTimeline(){const el=document.getElementById("timeline");if(!el)return;
+  const ev=[];
+  (this.state.posts||[]).forEach(p=>ev.push({d:p.date,t:`☾ A dream came — ${STATIONS[p.st].sign}${p.polarity==="gift"?" (a gift received)":""}`}));
+  (this.state.workings||[]).forEach(w=>{ev.push({d:w.date,t:`⚔ A working laid before the Table — ${STATIONS[w.st].sign}: “${w.text.slice(0,60)}…”`});
+   w.saidDates.forEach(d=>ev.push({d,t:`☩ The decree given — ${STATIONS[w.st].sign}`}));});
+  (this.state.questDates||[]).forEach(d=>ev.push({d,t:"☀ Today's quest walked"}));
+  (this.state.planetCalls||[]).forEach(d=>ev.push({d,t:"♁ The planetary call given for the world"}));
+  Object.entries(this.state.doneDates||{}).forEach(([st,d])=>ev.push({d,t:`✦ The ${STATIONS[+st].sign} seat surrendered — the seat turns gold`}));
+  ev.sort((a,b)=>b.d.localeCompare(a.d));
+  el.innerHTML=ev.length?ev.slice(0,60).map(e=>`<div class="signpost" style="padding:8px 12px"><b>${e.d}</b> · ${e.t}</div>`).join("")
+   :"<p class='small'>The scroll is blank — the first line writes itself the day you walk a quest, lay a working, or bring a dream.</p>";},
+
+ /* ---------- share cards (dream / dictation) ---------- */
+ shareCard(title,lines,fname){const c=document.createElement("canvas");c.width=1080;c.height=1350;
+  const x=c.getContext("2d");const W=1080,H=1350;
+  const g=x.createLinearGradient(0,0,0,H);g.addColorStop(0,"#131938");g.addColorStop(.6,"#0a0d19");g.addColorStop(1,"#0a0d19");
+  x.fillStyle=g;x.fillRect(0,0,W,H);
+  x.fillStyle="#39426b";for(let k=0;k<80;k++){const a=(k*137.5)%360*Math.PI/180,rr=80+(k*131)%420;
+   x.beginPath();x.arc(W/2+rr*Math.cos(a),430+rr*Math.sin(a)*0.9,k%9===0?2.2:1.2,0,7);x.fill();}
+  x.strokeStyle="#c9a227";x.lineWidth=2;x.beginPath();x.arc(W/2,430,250,0,7);x.stroke();
+  x.beginPath();x.arc(W/2,430,180,0,7);x.strokeStyle="#242b4c";x.stroke();
+  x.textAlign="center";x.fillStyle="#c9a227";x.font="26px Georgia";x.letterSpacing="8px";
+  x.fillText("THE INNER GRAIL",W/2,110);x.letterSpacing="0px";
+  x.fillStyle="#eccd6f";x.font="40px Georgia";
+  const wrap=(txt,y,size,color,maxw)=>{x.font=size+"px Georgia";x.fillStyle=color;
+   const words=txt.split(" ");let line="",yy=y;
+   for(const w of words){const t=line+w+" ";if(x.measureText(t).width>maxw){x.fillText(line,W/2,yy);line=w+" ";yy+=size*1.3;}else line=t;}
+   x.fillText(line,W/2,yy);return yy;};
+  let y=wrap(title,780,44,"#eccd6f",900)+50;
+  for(const ln of lines)y=wrap(ln,y,30,"#98a0bb",880)+26;
+  x.fillStyle="#c9a227";x.font="24px Georgia";x.fillText("— the quest is within —",W/2,1270);
+  const u=c.toDataURL("image/png");const a=document.createElement("a");a.href=u;a.download=fname;a.click();},
+ shareDream(id){const p=(this.state.posts||[]).find(x=>x.id===id);if(!p)return;
+  const s=STATIONS[p.st];
+  this.shareCard(p.polarity==="gift"?"A gift was given in the night":"The night showed a self",
+   [`“${(p.text||"").slice(0,140)}…”`,`The ${s.sign} seat · ${s.exploit}`,p.polarity==="gift"?(p.giftText||""):("The self: "+s.self.split("—")[0].trim())],
+   "grail-dream-card.png");},
+ shareDictation(){if(!this._lastInvoke)return;
+  const title=(this._lastInvoke.split("\n")[0]||"A dictation").slice(0,80);
+  this.shareCard(title,[`given to ${this.state.name||"a pilgrim"} at the Round Table`, "the full dictation lives in the app —","ask, and the Table answers"],"grail-dictation-card.png");},
+
+ /* ---------- PWA + the morning bell ---------- */
+ pwaInit(){if("serviceWorker" in navigator&&location.protocol.startsWith("http")){
+  try{navigator.serviceWorker.register("sw.js").catch(()=>{});}catch(e){}}
+  this.morningCheck();},
+ async bellEnable(){if(!("Notification" in window)){alert("Notifications are not supported here.");return;}
+  const p=await Notification.requestPermission();
+  if(p==="granted"){this.state.bell=true;this.save();
+   new Notification("The Inner Grail",{body:"The morning bell is set. Each day the quest will call you."});
+   this.morningCheck(true);}
+  this.renderToday&&this.renderToday();},
+ morningCheck(force){if(!this.state.bell||!("Notification" in window)||Notification.permission!=="granted")return;
+  const k=this.todayKey();if(!force&&this.state.lastBell===k)return;
+  this.state.lastBell=k;this.save();
+  const t=STATIONS[this.transitIdx()];
+  try{new Notification("Today's Quest — "+t.sign,{body:`${t.exploit}: ${MICRO[this.transitIdx()]}`});}catch(e){}},
 
  /* ---------- THE INVOCATION — situation -> full reading -> channeled dictation ---------- */
  invokeAnalysis(txt){
@@ -1109,9 +1318,10 @@ ${this.completedDecree(a.st,txt)}`;},
   const out=document.getElementById("invokeOut");
   if(txt.length<8){out.innerHTML="<p class='small'>Describe the situation — a sentence or two is enough.</p>";return;}
   const a=this.invokeAnalysis(txt);
+  const body=this.bodyRead(txt);
   const reading=`<div class="signpost" style="border-left-color:var(--blue)"><b>The reading of the wheels</b><br>
    <span class="small">${a.witnesses.map(w=>`${sgHTML(w.st,w.st===a.st?"#eccd6f":"#c9a227",13)} ${STATIONS[w.st].sign} — ${w.label}`).join("<br>")}<br>
-   Seat answered: <b>${a.s.sign}</b> under <b>${a.s.master}</b> · esoteric ruler ${a.eso} → Ray ${a.esoRay} (${DK_RAY[a.esoRay]}) · Chohan ${a.chohan}</span></div>`;
+   Seat answered: <b>${a.s.sign}</b> under <b>${a.s.master}</b> · esoteric ruler ${a.eso} → Ray ${a.esoRay} (${DK_RAY[a.esoRay]}) · Chohan ${a.chohan}${body?`<br>Where it lives: ${body.note}`:""}</span></div>`;
   out.innerHTML=reading+"<p class='lede'>The dictation is descending…</p>";
   let text=null,lane=null;
   if(location.protocol.startsWith("http")){
@@ -1133,6 +1343,8 @@ Answer EXACTLY in this dictation form, with these headers:
    <div class="kicker" style="text-align:left">${lane?"The dictation · living lane ("+lane+")":"The dictation · the built-in voice"}</div>
    <div class="invo" style="border:none;background:none;padding:0;white-space:pre-wrap">${this.esc(text)}</div>
    <button class="btn ghost" onclick="app.copyText(app._lastInvoke,'invokeCopy')">Copy the dictation</button><span class="small" id="invokeCopy"></span>
+   <button class="btn ghost" onclick="app.speakToggle(()=>app._lastInvoke||'',this)">🕭 Give it with me</button>
+   <button class="btn ghost" onclick="app.shareDictation()">Share card</button>
    <button class="btn ghost" onclick="app.show('vigil');const t=document.getElementById('vigilTxt');if(t)t.value=app._lastInvokeTxt||''">Work on it daily (open the Vigil)</button></div>`;
   this._lastInvokeTxt=txt;
   out.scrollIntoView({behavior:"smooth"});},
@@ -1196,6 +1408,15 @@ The sign that the working is answered usually comes in the night: a dream that r
   if(el.style.display==="block"){el.style.display="none";return;}
   el.textContent=this.workingDecree(w);el.style.display="block";},
  renderVigil(){const el=document.getElementById("vigilList");if(!el)return;
+  const wb=document.getElementById("watch9Box");
+  if(wb){const w=this.state.watch9;
+   if(!w)wb.innerHTML=`<div class="row" style="flex-wrap:wrap">`+STATIONS.map((s,i)=>`<button class="btn ghost" style="margin:0 6px 8px 0;padding:6px 10px" onclick="app.startWatch9(${i})">${sgHTML(i,"#c9a227",13)} ${s.sign}</button>`).join("")+`</div>`;
+   else{const s=STATIONS[w.st];const today=w.days.includes(this.todayKey());
+    wb.innerHTML=`<div class="signpost" style="border-left-color:var(--goldb)">${sgHTML(w.st,"#eccd6f",15)} <b>${s.sign}</b> under ${s.master} · begun ${w.start} · <b>day ${Math.min(w.days.length+(today?0:1),9)} of 9</b><br>
+     <div style="margin:6px 0">${Array.from({length:9},(_,k)=>`<span style="display:inline-block;width:12px;height:12px;border-radius:50%;margin:1px;background:${k<w.days.length?"var(--goldb)":"var(--line)"}"></span>`).join("")}</div>
+     <button class="btn ${today?"ghost":""}" style="margin:4px 6px 0 0;padding:6px 14px" ${today?"disabled":""} onclick="app.watch9Today()">${today?"✓ kept today":"I kept the watch today (decree given)"}</button>
+     <button class="btn ghost" style="margin:4px 6px 0 0;padding:6px 14px" onclick="app.show('home');app.openStation(${w.st})">The decree</button>
+     <button class="btn ghost" style="margin:4px 0 0;padding:6px 14px" onclick="if(confirm('Lay down this watch?')){app.state.watch9=null;app.save();app.renderVigil();}">Lay it down</button></div>`;}}
   const lede=document.getElementById("vigilLede");
   if(lede)lede.innerHTML=(this.state.figure==="lady"
     ?"Before the Grail was borne, the Maiden kept the night-watch."
@@ -1216,6 +1437,7 @@ The sign that the working is answered usually comes in the night: a dream that r
     ${dreams.length?`<div class="small" style="color:var(--parch)">${dreams.map(p=>"☾ "+p.date+" — "+STATIONS[p.st].sign+(p.polarity==="gift"?" (a gift)":"")).join("<br>")}</div>`:""}
     <div style="margin-top:8px">
      <button class="btn ghost" style="margin:0 6px 6px 0;padding:5px 12px" onclick="app.showWorkingDecree(${w.id})">The daily decree</button>
+     <button class="btn ghost" style="margin:0 6px 6px 0;padding:5px 12px" onclick="app.speakToggle(()=>app.workingDecree((app.state.workings||[]).find(x=>x.id===${w.id})),this)">🕭 With me</button>
      <button class="btn ${said?"ghost":""}" style="margin:0 6px 6px 0;padding:5px 12px" ${said?"disabled":""} onclick="app.saidToday(${w.id})">${said?"✓ given today":"I gave the decree today"}</button>
      <button class="btn ghost" style="margin:0 6px 6px 0;padding:5px 12px" onclick="app.dreamCame(${w.id})">A dream came</button>
      <button class="btn ghost" style="margin:0 6px 6px 0;padding:5px 12px" onclick="app.completeWorking(${w.id})">${answered?"Reopen":"Mark answered"}</button>
@@ -1247,11 +1469,16 @@ The sign that the working is answered usually comes in the night: a dream that r
     <span class="small">${p.syms&&p.syms.length?"Symbols: "+p.syms.join(", ")+". ":""}${gift&&p.giftText?p.giftText+".":"The self: "+s.self.split("—")[0].trim()+"."}</span>
     ${p.interp?`<br><span class="small" style="color:var(--parch)">— Merlin: ${this.esc(p.interp).slice(0,600)}</span>`:""}
     <br><button class="btn ghost" style="margin:8px 6px 0 0;padding:5px 12px" onclick="app.diaryDecree(${p.id})">${gift?"Receive-gift invocation":"Surrender decree"}</button>
-    ${p.interp?"":`<button class="btn ghost" style="margin:8px 0 0;padding:5px 12px" onclick="app.diaryInterpret(${p.id})">Ask Merlin</button>`}</div>`;}).join("");},
+    ${p.interp?"":`<button class="btn ghost" style="margin:8px 6px 0 0;padding:5px 12px" onclick="app.diaryInterpret(${p.id})">Ask Merlin</button>`}
+    <button class="btn ghost" style="margin:8px 0 0;padding:5px 12px" onclick="app.shareDream(${p.id})">Share card</button>
+    <div class="invo" id="dd${p.id}" style="display:none;white-space:pre-wrap"></div></div>`;}).join("");},
 
  diaryDecree(id){const p=this.state.posts.find(x=>x.id===id);if(!p)return;
+  const el=document.getElementById("dd"+id);if(!el)return;
+  if(el.style.display==="block"){el.style.display="none";return;}
   const t=p.polarity==="gift"?this.affirmationDecree(p.st,p.giftText||"this grace"):this.completedDecree(p.st,p.text||"");
-  this.copyText(t,"");alert(t);},
+  el.textContent=t;el.style.display="block";this.copyText(t,"");
+  el.scrollIntoView({behavior:"smooth",block:"nearest"});},
  async diaryInterpret(id){await this.interpretDream(id);this.renderDiary();},
 
  exportDreams(){const data=JSON.stringify({app:"the-inner-grail",exported:this.todayKey(),
@@ -1354,65 +1581,7 @@ The sign that the working is answered usually comes in the night: a dream that r
   return base.replace("[Make personal calls]",
    `Including this, which I now name before the Table:\n"${aspect}"\nI call for this self to be seen, surrendered, and consumed in the light, and for the ${STATIONS[i].quality.split("—")[0].trim()} to take its place.`);},
 
- async answerOracle(){const q=(document.getElementById("oracleTxt").value||"").trim();
-  const o=document.getElementById("counselOut");
-  if(q.length<5){o.innerHTML="<p class='lede' style='margin-top:12px'>Tell Merlin what is arising — a sentence is enough.</p>";return;}
-  /* LIVE lane: if served by the local grail_server, call the real AI first */
-  if(location.protocol.startsWith("http")){
-   o.innerHTML="<p class='lede' style='margin-top:12px'>Merlin is consulting the living source…</p>";
-   try{
-    const r=await fetch("/api/oracle",{method:"POST",headers:{"content-type":"application/json"},
-      body:JSON.stringify({question:q,name:this.state.name,dob:this.state.dob,time:this.state.time,
-        place:this.state.place,natal:this.state.natal,transit:this.transitIdx(),figure:this.state.figure})});
-    if(r.ok){const d=await r.json();
-     if(d.lane&&d.lane!=="none"){
-      o.innerHTML=`<div class="card" style="border-color:var(--gold)">
-        <div class="kicker" style="text-align:left">Merlin answers · living counsel (${d.lane})</div>
-        <div class="invo" style="border:none;background:none;padding:0">${d.counsel.replace(/&/g,"&amp;").replace(/</g,"&lt;")}</div></div>`;
-      o.scrollIntoView({behavior:"smooth"});return;}}
-   }catch(e){/* fall through to in-page Merlin */}
-  }
-  this.answerLocal(q,o);
- },
- answerLocal(q,o){
-  const low=q.toLowerCase();
-  const hits=ASPECT_LEX.filter(e=>e.keys.some(k=>low.includes(k)));
-  const counts={};hits.forEach(h=>counts[h.st]=(counts[h.st]||0)+1);
-  let sti,why;
-  if(hits.length){sti=Number(Object.entries(counts).sort((a,b)=>b[1]-a[1])[0][0]);
-   why=hits.find(h=>h.st===sti).why;}
-  else{sti=this.state.natal>=0?this.state.natal:this.transitIdx();
-   why="when the words do not name it, the quest returns you to the seat that holds you deepest";}
-  const s=STATIONS[sti];const ti=this.transitIdx();const t=STATIONS[ti];
-  this._lastDecree=this.completedDecree(sti,q);
-  const second=Object.keys(counts).length>1?STATIONS[Number(Object.entries(counts).sort((a,b)=>b[1]-a[1])[1][0])]:null;
-  const astro= sti===ti
-   ?`And mark this well: the Sun itself rides <b>${s.glyph} ${s.sign}</b> today — the heavens are pressing this very seat on all pilgrims now. What arises in you is the wheel turning on schedule.`
-   :(sti===this.state.natal
-     ?`And this is no passing weather — <b>${s.sign} is your own natal seat</b>, the test that runs deepest in this life. When it arises, the quest is calling you by name. (Today's transit light rides ${t.glyph} ${t.sign} — ${t.exploit} — which colours how the test comes to you.)`
-     :`Today the transit light rides ${t.glyph} ${t.sign} (${t.exploit}), while what arises in you belongs to <b>${s.glyph} ${s.sign}</b> — the wheel presses one seat, and the mirror shows you another. Both are the same circle.`);
-  o.innerHTML=`
-  <div class="card" style="border-color:var(--gold)">
-   <div class="kicker" style="text-align:left">Merlin answers</div>
-   <p style="font-style:italic">You bring me this: <span style="color:var(--dim)">"${q}"</span></p>
-   <h3>What is arising, and why</h3>
-   <p>Nothing is happening <i>to</i> you, pilgrim — the outer is the mirror of the inner. What you describe is the <b>${s.glyph} ${s.sign} seat</b> lighting on your wheel: ${why}. The knight-self riding there is <b>${s.self}</b>.</p>
-   <h3>What the heavens are doing</h3>
-   <p>${astro}</p>
-   <h3>What it is trying to tell you</h3>
-   <p>This is <b>${s.exploit}</b>: ${s.exploitNote} The teaching of this seat is not that you must fight harder — it is that a self must be <i>seen</i> and <i>let die</i>. The quality waiting behind it is <b>${s.quality}</b>. ${second?`(A second seat also stirred — ${second.glyph} ${second.sign}, ${second.exploit} — watch whether the coming days press that one too.)`:""}</p>
-   <h3>The figure-eight — how the answer will come</h3>
-   <p>Speak the decree below aloud: that is the <b>outgoing current</b> — your call rising to the masters. Then watch for the <b>return current</b>: the masters answer <i>within</i> — in the dreams of the coming nights, in the quiet knowing that surfaces unbidden. When a dream comes, bring it to the <b>Dream Gate</b>; it is the sealed letter of their reply. Call and answer, above and below — that is the figure-eight of the quest.</p>
-   <h3>The completed decree for this exact aspect</h3>
-   <div class="invo">${this._lastDecree}</div>
-   <button class="btn ghost" onclick="app.copyText(app._lastDecree,'cCopy')">Copy the decree</button>
-   <span class="small" id="cCopy"></span>
-   <h3>The signpost to watch</h3>
-   <p class="small">In the coming days, watch for <b>${s.exploit.toLowerCase()}</b> replaying in small forms — and in the nights, watch for its symbols: ${DREAM_LEX.filter(d=>d.st===sti).slice(0,3).map(d=>d.sym).join(", ")}. When one appears, the return current has reached you.</p>
-  </div>`;
-  o.scrollIntoView({behavior:"smooth"});},
-
- buildScroll(){const lastUser=(this.state.chat||[]).filter(m=>m.role==="user").slice(-1)[0];
+  buildScroll(){const lastUser=(this.state.chat||[]).filter(m=>m.role==="user").slice(-1)[0];
   const q=((document.getElementById("chatInput")||{}).value||"").trim()||(lastUser?lastUser.text:"");
   const o=document.getElementById("oracleOut");
   if(!q){o.style.display="block";o.textContent="Ask Merlin something first (or type it above), then export the scroll.";return;}
@@ -1549,10 +1718,14 @@ THE COUNSEL ASKED
   /* challenges = transit planets grouped by the seat they light */
   const bucket={};(trans||[]).forEach(p=>{(bucket[p.sign]=bucket[p.sign]||[]).push(p.name);});
   const order=Object.keys(bucket).sort((a,b)=>bucket[b].length-bucket[a].length);
-  document.getElementById("skyChallenges").innerHTML=order.length?order.map(si=>{const s=STATIONS[si];
+  const asp=this.transitAspects(natal,trans);
+  const aspHtml=asp.length?`<div class="signpost" style="border-left-color:var(--blue)"><b>The dual wheel — transits touching your natal degrees (±${ASPECT_ORB}°)</b><br>
+   <span class="small">${asp.map(x=>`${x.hard?"<b>":""}Transiting ${x.t} ${x.name} your natal ${x.n} (orb ${x.orb}°) — presses the ${STATIONS[x.seat].sign} seat${x.hard?"</b>":""}`).join("<br>")}<br>
+   The hard touches (conjunct · square · opposite) time the tests; the soft (sextile · trine) carry the aid.</span></div>`:"";
+  document.getElementById("skyChallenges").innerHTML=aspHtml+(order.length?order.map(si=>{const s=STATIONS[si];
    return `<div class="signpost"><b>${sgHTML(+si,"#c9a227",16)} ${s.sign} — ${s.exploit}</b> · lit by ${bucket[si].join(", ")}<br>
    <span class="small">The test: ${s.self}. Free the quality of ${s.quality.split("—")[0].trim()}. ${(+si===this.state.natal)?"<b>This is your natal seat — it presses you by name.</b>":""}</span><br>
-   <button class="btn ghost" style="margin:8px 0 0;padding:6px 14px" onclick="app.show('home');app.openStation(${si})">Open this seat's invocation</button></div>`;}).join(""):"<p class='lede'>The transiting planets are spread across many seats today — no single test dominates. A day to walk lightly.</p>";
+   <button class="btn ghost" style="margin:8px 0 0;padding:6px 14px" onclick="app.show('home');app.openStation(${si})">Open this seat's invocation</button></div>`;}).join(""):"<p class='lede'>The transiting planets are spread across many seats today — no single test dominates. A day to walk lightly.</p>");
   this.renderRayMap(natal,trans);
  },
 
@@ -1580,6 +1753,7 @@ THE COUNSEL ASKED
 
 document.querySelectorAll(".nav button").forEach(b=>b.addEventListener("click",()=>app.show(b.dataset.s)));
 app.load();
+app.pwaInit();
 if(app.state.onboarded&&app.state.natal>=0){app.enter();}
 else{document.getElementById("welcome").classList.add("on");app.ob();}
 </script>
