@@ -69,20 +69,24 @@ Today's transit seat: ${ts ? ts.sign + " - " + ts.exploit : "(unknown)"}`;
     user = `${pilgrim}\n\nWHAT IS ARISING\n"${question}"\n\nTHE TWELVE SEATS (for your mapping)\n${ctx}\n\nRead what is arising through the mirror: which seat lights, which knight-self rides, and craft the counsel and the nine-verse decree for THIS exact aspect, naming ${name}'s situation in the personal calls.`;
   }
 
-  const model = process.env.GRAIL_GEMINI_MODEL || "gemini-3-flash-preview";
-  const url = `https://generativelanguage.googleapis.com/v1beta/models/${model}:generateContent?key=${key}`;
+  const models = [process.env.GRAIL_GEMINI_MODEL || "gemini-3-flash-preview",
+    "gemini-flash-lite-latest"]; // fallback lane with its own free quota
   const payload = {
     systemInstruction: { parts: [{ text: system }] },
     contents: [{ parts: [{ text: user }] }],
     generationConfig: { maxOutputTokens: 2800, temperature: 0.85 },
   };
-  try {
-    const r = await fetch(url, { method: "POST", headers: { "content-type": "application/json" }, body: JSON.stringify(payload) });
-    const d = await r.json();
-    const text = ((d.candidates && d.candidates[0] && d.candidates[0].content && d.candidates[0].content.parts) || [])
-      .map(p => p.text || "").join("");
-    res.status(200).json({ counsel: text || "(the Oracle returned no words — try again)", lane: text ? "gemini" : "none" });
-  } catch (e) {
-    res.status(200).json({ counsel: "The Oracle could not be reached: " + e.message, lane: "none" });
+  let lastErr = "";
+  for (const model of models) {
+    try {
+      const url = `https://generativelanguage.googleapis.com/v1beta/models/${model}:generateContent?key=${key}`;
+      const r = await fetch(url, { method: "POST", headers: { "content-type": "application/json" }, body: JSON.stringify(payload) });
+      const d = await r.json();
+      const text = ((d.candidates && d.candidates[0] && d.candidates[0].content && d.candidates[0].content.parts) || [])
+        .map(p => p.text || "").join("");
+      if (text) { res.status(200).json({ counsel: text, lane: "gemini" }); return; }
+      lastErr = (d.error && d.error.message) || "empty reply";
+    } catch (e) { lastErr = e.message; }
   }
+  res.status(200).json({ counsel: "The Oracle could not be reached: " + lastErr, lane: "none" });
 };
