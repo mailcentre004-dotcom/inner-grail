@@ -13,7 +13,7 @@
   *{box-sizing:border-box;margin:0}
   html,body{background:radial-gradient(1500px 1000px at 50% -260px,#141a38 0%,var(--night) 62%);
     color:var(--parch);font-family:var(--serif);min-height:100vh}
-  body{padding-bottom:86px}
+  body{padding-bottom:130px}
   button{font-family:var(--serif)}
 
   /* ---------- shells ---------- */
@@ -119,15 +119,15 @@
 
   /* ---------- bottom nav ---------- */
   .nav{position:fixed;left:0;right:0;bottom:0;background:rgba(10,13,25,.96);border-top:1px solid var(--line);
-    display:flex;justify-content:center;gap:2px;padding:8px 6px;z-index:40;backdrop-filter:blur(6px)}
+    display:flex;flex-wrap:wrap;justify-content:center;gap:2px;padding:6px 4px;z-index:40;backdrop-filter:blur(6px)}
   .nav button{background:none;border:none;color:var(--dim);font-size:11.5px;letter-spacing:.06em;
     padding:8px 12px;cursor:pointer;border-radius:6px;display:flex;flex-direction:column;align-items:center;gap:3px}
   .nav button .ic{font-size:17px}
   .nav button.on{color:var(--goldb);background:rgba(201,162,39,.08)}
-  @media (max-width:560px){.nav button{padding:8px 4px;font-size:9.5px}.nav button .ic{font-size:14px}.nav{gap:0}}
+  @media (max-width:560px){.nav button{padding:6px 7px;font-size:10.5px;flex:0 0 18%}.nav button .ic{font-size:15px}.nav{gap:0}}
 
   /* ---------- ask-Merlin (every screen) ---------- */
-  #askFab{position:fixed;right:14px;bottom:74px;z-index:45;background:var(--panel2);color:var(--goldb);
+  #askFab{position:fixed;right:14px;bottom:118px;z-index:45;background:var(--panel2);color:var(--goldb);
     border:1px solid var(--gold);border-radius:22px;padding:9px 16px;cursor:pointer;font-size:13px;
     letter-spacing:.04em;box-shadow:0 4px 18px rgba(0,0,0,.5);display:none}
   #askPanel{position:fixed;right:10px;bottom:120px;z-index:46;width:min(370px,calc(100vw - 20px));
@@ -202,7 +202,8 @@
     <div class="row" style="align-items:center;margin-top:6px">
       <div style="flex:0 0 auto">
         <button class="btn ghost" id="btnWest" onclick="app.setChartMode('western')" style="margin:0 4px 0 0">Western</button>
-        <button class="btn ghost" id="btnVedic" onclick="app.setChartMode('vedic')" style="margin:0">Vedic</button>
+        <button class="btn ghost" id="btnVedic" onclick="app.setChartMode('vedic')" style="margin:0 8px 0 0">Vedic</button>
+        <button class="btn ghost" style="margin:0" onclick="document.getElementById('rayMap').scrollIntoView({behavior:'smooth'})">↓ The Rays you are in</button>
       </div>
     </div>
     <div class="wheelwrap"><svg id="skyWheel" class="wheel" viewBox="0 0 400 400" role="img" aria-label="Your birth chart and transits"></svg></div>
