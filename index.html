@@ -124,6 +124,7 @@
     padding:8px 12px;cursor:pointer;border-radius:6px;display:flex;flex-direction:column;align-items:center;gap:3px}
   .nav button .ic{font-size:17px}
   .nav button.on{color:var(--goldb);background:rgba(201,162,39,.08)}
+  .btn.on{border-color:var(--goldb);color:var(--goldb);background:rgba(201,162,39,.12)}
   @media (max-width:560px){.nav button{padding:6px 7px;font-size:10.5px;flex:0 0 18%}.nav button .ic{font-size:15px}.nav{gap:0}}
 
   /* ---------- ask-Merlin (every screen) ---------- */
@@ -245,8 +246,14 @@
   <div class="card">
     <h2>The Invocation — a channeled answer to what you face</h2>
     <p class="lede">Describe the situation. The wheel is read for you — your natal seat, Master DK's rays, your Cosmic Clock line, the planetary ray, today's transits — and the master whose flame answers it is named. The answer comes as a dictation: a <b>title</b>, a <b>riddle-poem</b> whose answer is hidden in the message, the <b>teaching</b>, and the <b>nine-verse invocation</b> to give.</p>
+    <label>What is the call for?</label>
+    <div style="margin:2px 0 8px">
+      <button class="btn ghost" id="imAuto" onclick="app.setInvokeMode('auto')" style="margin:0 4px 4px 0">Let Merlin read it</button>
+      <button class="btn ghost" id="imSelf" onclick="app.setInvokeMode('self')" style="margin:0 4px 4px 0">For myself — a self to surrender</button>
+      <button class="btn ghost" id="imHeal" onclick="app.setInvokeMode('heal')" style="margin:0 0 4px 0">For another — a healing rosary</button>
+    </div>
     <label>The situation</label>
-    <textarea id="invokeTxt" placeholder="My colleague was promoted over me and I cannot stop replaying it — the anger keeps rising…"></textarea>
+    <textarea id="invokeTxt" placeholder="A healing rosary for my dog Phi Ohi — her breath and her eyes… · or · My colleague was promoted over me and the anger keeps rising…"></textarea>
     <button class="btn" onclick="app.invokeAnswer()">Receive the answer</button>
     <div id="invokeOut"></div>
   </div>
@@ -370,7 +377,9 @@
     <p class="lede">Your card of the Table — keep it, share it, let it call others to the quest.</p>
     <canvas id="seatCanvas" width="1080" height="1350"></canvas><br>
     <button class="btn ghost" onclick="app.saveCard()">Keep the card</button>
-    <button class="btn ghost" onclick="app.toggleFigure()">Change my figure (Knight ⇄ Lady)</button>
+    <button class="btn ghost" onclick="app.toggleFigure()">Change my figure (Knight ⇄ Lady)</button><br>
+    <label style="margin-top:10px">My seat (sign) — auto follows the Sun of your chosen zodiac; set it by hand if you know your sign</label>
+    <select id="seatSelect" onchange="app.setSeatManual(this.value)" style="width:100%;background:var(--panel2);color:var(--parch);border:1px solid var(--line);border-radius:6px;padding:9px;font-family:var(--serif)"></select>
     <span class="small" id="cardNote"></span>
   </div>
   <div class="card">
@@ -720,6 +729,14 @@ const app={
  figName(){return this.state.figure==="lady"?"Lady of the Grail":"Knight of the Round Table";},
  figAddress(){return this.state.figure==="lady"?"Lady":"Sir";},
  setFigure(f){this.state.figure=f;this.obStage=2;this.save();this.ob();},
+ setSeatManual(v){if(v==="auto"){this.state.natalManual=false;}
+  else{this.state.natal=+v;this.state.natalManual=true;}
+  this.save();this.renderAll&&this.renderAll();
+  const n=document.getElementById("cardNote");
+  if(n)n.textContent=v==="auto"?" The seat now follows the Sun of your chosen zodiac.":" Seat set to "+STATIONS[+v].sign+".";},
+ fillSeatSelect(){const s=document.getElementById("seatSelect");if(!s)return;
+  s.innerHTML=`<option value="auto"${this.state.natalManual?"":" selected"}>Auto — follow the Sun (${this.state.natal>=0?STATIONS[this.state.natal].sign:"—"})</option>`
+   +STATIONS.map((st,i)=>`<option value="${i}"${this.state.natalManual&&this.state.natal===i?" selected":""}>${st.sign} — ${st.exploit}</option>`).join("");},
  toggleFigure(){this.state.figure=this.state.figure==="lady"?"knight":"lady";this.save();
   this.drawCard();this.renderVigil();const n=document.getElementById("cardNote");
   if(n)n.textContent=" You now ride as a "+this.figName()+".";},
@@ -730,6 +747,15 @@ const app={
  signFor(m,d){for(let i=0;i<12;i++){const s=STATIONS[i],[fm,fd]=s.from,[tm,td]=s.to;
    if((m===fm&&d>=fd)||(m===tm&&d<=td))return i;}return 9;},
  transitIdx(){const t=new Date();return this.signFor(t.getMonth()+1,t.getDate());},
+ /* accurate Sun sign from the ephemeris (falls back to the calendar table if the engine is absent).
+    respects the chosen zodiac so a cusp birth reads correctly (e.g. Aug-23 = Leo in Vedic). */
+ sunSignReal(dobStr){if(window.Astronomy&&dobStr){try{
+   const[y,m,d]=dobStr.split("-").map(Number);const dt=new Date(Date.UTC(y,m-1,d,12,0,0));
+   const ay=this.state.chartMode==="vedic"?this.ayan(dt):0;
+   const ecl=window.Astronomy.Ecliptic(window.Astronomy.GeoVector(window.Astronomy.Body.Sun,dt,true));
+   return Math.floor((((ecl.elon-ay)%360+360)%360)/30)%12;
+  }catch(e){}}
+  const[y,m,d]=(dobStr||"").split("-").map(Number);return this.signFor(m,d);},
  todayKey(){return new Date().toISOString().slice(0,10);},
  streak(){const days=[...this.state.questDates].sort().reverse();let n=0;
   let d=new Date();for(;;){const k=d.toISOString().slice(0,10);
@@ -758,7 +784,7 @@ const app={
  obNext(){if(this.obStage===0){const n=document.getElementById("obName").value.trim();
    if(!n)return;this.state.name=n;this.obStage=1;}
   else if(this.obStage===2){const v=document.getElementById("obDob").value;if(!v)return;
-   const[y,m,d]=v.split("-").map(Number);this.state.dob=v;this.state.natal=this.signFor(m,d);this.obStage=3;}
+   const[y,m,d]=v.split("-").map(Number);this.state.dob=v;this.state.natal=this.sunSignReal(v);this.obStage=3;}
   else{this.state.time=(document.getElementById("obTime").value||"").trim();
    this.state.place=(document.getElementById("obPlace").value||"").trim();
    this.state.onboarded=true;this.save();this.enter();return;}
@@ -766,7 +792,13 @@ const app={
 
  enter(){document.getElementById("welcome").classList.remove("on");
   document.getElementById("nav").style.display="flex";
-  this.show("home");this.renderAll();this.setAIStatus();},
+  this.show("home");this.renderAll();this.setAIStatus();
+  if(!this.state.seenGuide){this.state.seenGuide=true;this.save();
+   const p=document.getElementById("stationPanel");
+   if(p)p.innerHTML=`<div class="signpost" style="border-left-color:var(--goldb)"><b>Welcome to the quest, ${this.state.name?this.figAddress()+" "+this.esc(this.state.name):"pilgrim"}.</b><br>
+    <span class="small">Three doors to begin: touch your <b>gold seat</b> on the wheel above for its nine-verse decree · open <b>☩ Invoke</b> to bring any situation and receive a channeled answer · open <b>☾ Dreams</b> to record a dream and have it read. The <b>✶ Ask Merlin</b> button on every page answers anything, grounded in the masters' own dictations.</span>
+    <br><button class="btn ghost" style="margin:8px 0 0;padding:5px 12px" onclick="app.show('invoke')">Try Invoke</button>
+    <button class="btn ghost" style="margin:8px 0 0;padding:5px 12px" onclick="this.closest('.signpost').remove()">Dismiss</button></div>`;}},
 
  async setAIStatus(){const el=document.getElementById("aiStatus");if(!el)return;
   const live=location.protocol.startsWith("http");
@@ -800,7 +832,7 @@ const app={
   if(id==="vigil")this.renderVigil();
   if(id==="clock")this.renderClock();
   if(id==="book")this.renderBook();
-  if(id==="me"){this.renderTimeline();}
+  if(id==="me"){this.renderTimeline();this.fillSeatSelect();}
   if(id==="today"){const n=document.getElementById("bellNote");
    if(n)n.textContent=this.state.bell?" The bell is set — the quest calls you each new day this app is opened.":"";}},
 
@@ -1138,8 +1170,34 @@ In the name of the Divine Mother, I fully accept that the power of these calls i
   box.innerHTML="<p class='lede'>Listening for the latest word…</p>";
   try{const r=await fetch("/api/feed");const d=await r.json();
    if(!d.items||!d.items.length){box.innerHTML="<p class='small'>No new word reached the gate — try again later.</p>";return;}
-   box.innerHTML=d.items.slice(0,8).map(it=>`<div class="signpost" style="padding:8px 12px"><b>${this.esc(it.title)}</b><br><span class="small">${this.esc(it.date||"")} · <a href="${this.esc(it.link)}" target="_blank" rel="noopener" style="color:var(--goldb)">read the dictation ↗</a></span></div>`).join("");
+   this._feed=d.items.slice(0,10);
+   box.innerHTML=this._feed.map((it,k)=>`<div class="signpost" style="padding:8px 12px"><b>${this.esc(it.title)}</b><br><span class="small">${this.esc(it.date||"")} · <a href="${this.esc(it.link)}" target="_blank" rel="noopener" style="color:var(--goldb)">read the dictation ↗</a></span><br><button class="btn ghost" style="margin:6px 0 0;padding:5px 12px" onclick="app.invokeFromDictation(${k})">✎ Make an invocation from this</button></div>`).join("")+`<div id="feedInvo"></div>`;
   }catch(e){box.innerHTML="<p class='small'>The feed could not be reached from here.</p>";}},
+
+ /* ---------- an invocation crafted FROM a chosen dictation (feed -> corpus -> AI) ---------- */
+ async invokeFromDictation(k){const it=(this._feed||[])[k];if(!it)return;
+  const out=document.getElementById("feedInvo");if(!out)return;
+  out.innerHTML=`<div class="signpost" style="border-left-color:var(--goldb)"><b>“${this.esc(it.title)}”</b> — scanning this dictation and channeling an invocation…</div>`;
+  let text=null,lane=null;
+  if(location.protocol.startsWith("http")){
+   try{const r=await fetch("/api/oracle",{method:"POST",headers:{"content-type":"application/json"},
+     body:JSON.stringify({messages:[{role:"user",text:"Make an invocation grounded in the dictation titled: "+it.title}],
+       corpus:true,query:it.title,
+       context:`The pilgrim has chosen the dictation "${it.title}" from the latest-word feed and asks for an invocation grounded in ITS teaching. Use the retrieved source passages below (they are from this and related dictations). Answer in this form, headers exactly:
+1. TITLE in capitals drawn from the dictation's theme.
+2. THE TEACHING — 2-3 sentences distilling the dictation's core, in the master's voice.
+3. THE INVOCATION — a full NINE-VERSE decree in the measured form: opening call to the master of this dictation, [Make personal calls], nine 4-line AABB verses naming the master, the six-line "Hail Mary, Mother of Light" refrain IN FULL after every verse, verse 8 balance, verse 9 God-quality seal, the "I see this self" affirmation, and the Divine-Mother sealing.`,
+       name:this.state.name,dob:this.state.dob,natal:this.state.natal,transit:this.transitIdx(),figure:this.state.figure})});
+    if(r.ok){const d=await r.json();if(d.lane&&d.lane!=="none"){text=d.counsel;lane=d.lane;}}
+   }catch(e){}}
+  if(!text){out.innerHTML=`<div class="signpost"><b>“${this.esc(it.title)}”</b><br><span class="small">The living lane crafts this one — open the app on the live link (or START_GRAIL.bat) and Merlin will build the invocation from this dictation's own words. You can also <a href="${this.esc(it.link)}" target="_blank" rel="noopener" style="color:var(--goldb)">read it ↗</a> and bring a line to the Invoke page.</span></div>`;return;}
+  this._lastInvoke=text;this._lastInvokeTxt=it.title;
+  out.innerHTML=`<div class="card" style="border-color:var(--gold)">
+   <div class="kicker" style="text-align:left">From “${this.esc(it.title)}” · living lane (${lane})</div>
+   <div class="invo" style="border:none;background:none;padding:0;white-space:pre-wrap">${this.esc(text)}</div>
+   <button class="btn ghost" onclick="app.copyText(app._lastInvoke,'feedInvoCopy')">Copy</button><span class="small" id="feedInvoCopy"></span>
+   <button class="btn ghost" onclick="app.speakToggle(()=>app._lastInvoke||'',this)">🕭 Give it with me</button></div>`;
+  out.scrollIntoView({behavior:"smooth"});},
 
  /* ---------- VOICE: give the decree aloud (TTS) + speak the dream (STT) ---------- */
  speak(text,btn){if(!window.speechSynthesis){alert("This device has no speech voice.");return;}
@@ -1277,6 +1335,36 @@ In the name of the Divine Mother, I fully accept that the power of these calls i
   try{new Notification("Today's Quest — "+t.sign,{body:`${t.exploit}: ${MICRO[this.transitIdx()]}`});}catch(e){}},
 
  /* ---------- THE INVOCATION — situation -> full reading -> channeled dictation ---------- */
+ invokeMode:"auto",
+ setInvokeMode(m){this.invokeMode=m;
+  ["Auto","Self","Heal"].forEach(k=>{const b=document.getElementById("im"+k);
+   if(b)b.classList.toggle("on",m===k.toLowerCase());});},
+ /* detect a call made FOR ANOTHER BEING (a healing rosary), vs a self to surrender */
+ healingWho(txt){const low=txt.toLowerCase();
+  if(this.invokeMode==="heal")return this.healingSubject(txt)||"the one you hold";
+  if(this.invokeMode==="self")return null;
+  if(/\b(heal|healing|restore|recover|rosary for|attunement|wholeness|make .* whole|blessing for)\b/.test(low)
+     ||/\bfor (my |our )?(dog|cat|animal|pet|mother|father|mum|dad|son|daughter|child|children|friend|husband|wife|partner|sister|brother|grandmother|grandfather|baby|companion)\b/.test(low))
+   return this.healingSubject(txt)||"the one you hold";
+  return null;},
+ healingSubject(txt){
+  let m=txt.match(/for (?:my |our )?([A-Z][a-zA-Z']*(?: [A-Z][a-zA-Z']*)*)/);
+  if(m&&m[1].trim().length>1&&!/^(I|The|My|A|An)$/.test(m[1].trim()))return m[1].trim();
+  m=txt.match(/\b(?:my |our )(dog|cat|animal|pet|mother|father|mum|dad|son|daughter|child|friend|husband|wife|partner|sister|brother|baby|companion)\b/i);
+  if(m)return "my "+m[1].toLowerCase();
+  return null;},
+ /* the healing invocation — Astrea (Ray 4, Circle & Sword) cuts free + Mother Mary re-impresses the blueprint */
+ healingDecree(subject,situation){
+  const base=this.invocation(7); /* Scorpio seat = Elohim Astrea, Ray 4 acceleration/purity */
+  return base
+   .replace("The Invocation of the Scorpio Seat — Gawain and the Green Knight",
+            `A Healing Rosary for ${subject} — Elohim Astrea & Mother Mary`)
+   .replace(/I call to beloved Elohim Astrea to release flood tides of light, to consume[\s\S]*?including\.\.\./,
+    `I call to beloved Elohim Astrea and beloved Mother Mary to release flood tides of blue-white light around ${subject}, to cut ${subject} free from every retained burden, every imperfect pattern and energy, and to re-impress upon ${subject} the perfect blueprint of wholeness held for ${subject} by the Elohim — with love, for this which I now name:\n"${situation}"\nincluding...`)
+   .replace("[Make personal calls]",
+    `I hold ${subject} in the sphere of Astrea's Circle and Sword; I see the blue-white fire pass gently through, dissolving every grey burden into light. I hold the living picture of ${subject} whole, restored, and light. What my love holds, the body-elemental receives and retains.`)
+   .replace(/I see this self\. I see it is not me\.[\s\S]*?now and forever\./,
+    `This is not my self to surrender but a light to anchor for ${subject}. I withdraw all fear of loss, I take dominion over the Ma-ter light, and I command it to outpicture the perfect vision of Christ-wholeness for ${subject}, now and forever — and I give ${subject} to the highest good, held in Purity and in love.`);},
  invokeAnalysis(txt){
   const seat=this.workingSeat(txt);           /* the seat the words mirror */
   const witnesses=[];const push=(st,label)=>{if(st>=0)witnesses.push({st,label});};
@@ -1315,30 +1403,62 @@ This is ${s.exploit}: ${s.exploitNote} You cannot defeat this self, for fighting
 THE INVOCATION
 
 ${this.completedDecree(a.st,txt)}`;},
+ healingBuiltin(txt,who){
+  return `A HEALING ROSARY FOR ${who.toUpperCase()}
+
+THE CHANNELED MESSAGE
+
+We are Elohim Astrea and Mother Mary. Beloved, you have brought ${who} before us in love — and it is that love that lifts, for you stand higher in the chain of life, and what you hold, the body-elemental of ${who} receives and retains. Fear not the outer condition: there is no condition in the material world that cannot be accelerated beyond, for matter is made from Spirit, and there is Spirit everywhere in matter. See now the blue-white Circle around ${who}, and the Sword of blue-white fire passing gently through — cutting free every retained burden, every imperfect pattern, every grey energy — and watch them dissolve into light. Then hold the living picture of ${who} whole, and let the Mother re-impress the perfect blueprint.
+
+THE PRACTICE
+
+1. Protect: "Beloved Archangel Michael, seal us in your blue flame."
+2. Attune with love — feel your love for ${who}; that love is the lifting force.
+3. See Astrea's blue-white Circle & Sword cut ${who} free of every burden, dissolving into light.
+4. Give the invocation below, slowly, 3× or 9×.
+5. Re-image ${who} whole — breathing easily, bright and light — the perfect blueprint the Elohim hold.
+6. Release with love: give ${who} to the highest good, held in Purity and in your love.
+
+THE INVOCATION
+
+${this.healingDecree(who,txt)}`;},
  async invokeAnswer(){const txt=(document.getElementById("invokeTxt").value||"").trim();
   const out=document.getElementById("invokeOut");
   if(txt.length<8){out.innerHTML="<p class='small'>Describe the situation — a sentence or two is enough.</p>";return;}
-  const a=this.invokeAnalysis(txt);
-  const body=this.bodyRead(txt);
-  const reading=`<div class="signpost" style="border-left-color:var(--blue)"><b>The reading of the wheels</b><br>
-   <span class="small">${a.witnesses.map(w=>`${sgHTML(w.st,w.st===a.st?"#eccd6f":"#c9a227",13)} ${STATIONS[w.st].sign} — ${w.label}`).join("<br>")}<br>
-   Seat answered: <b>${a.s.sign}</b> under <b>${a.s.master}</b> · esoteric ruler ${a.eso} → Ray ${a.esoRay} (${DK_RAY[a.esoRay]}) · Chohan ${a.chohan}${body?`<br>Where it lives: ${body.note}`:""}</span></div>`;
-  out.innerHTML=reading+"<p class='lede'>The dictation is descending…</p>";
+  const who=this.healingWho(txt);        /* non-null => a healing rosary FOR ANOTHER */
+  let reading,ctx;
+  if(who){
+   reading=`<div class="signpost" style="border-left-color:var(--goldb)"><b>A healing rosary for ${this.esc(who)}</b><br>
+    <span class="small">The 4th-ray flame of <b>Elohim Astrea</b> (the blue-white Circle & Sword — acceleration and purity) with <b>Mother Mary</b> (the Divine Mother who re-impresses the perfect blueprint). The reading is drawn from the masters' own dictations on healing and the body-elemental.</span></div>`;
+   ctx=`The pilgrim asks for a HEALING ROSARY for ANOTHER BEING: ${who}. This is NOT the pilgrim's own self to surrender — do NOT psychoanalyse the pilgrim or map their natal seat to a fault. Craft a loving healing invocation FOR ${who}, grounded in the ascended-master teaching: Elohim Astrea's blue-white Circle & Sword cuts the being free from every retained burden/imperfect pattern; the body-elemental holds a blueprint and receives what a loving human holds for it; Mother Mary re-impresses the perfect blueprint; end by giving ${who} to the highest good in love. The situation: "${txt}".
+Answer in this dictation form, headers exactly:
+1. TITLE in capitals (e.g. 'A HEALING ROSARY FOR ${who.toUpperCase()}').
+2. THE CHANNELED MESSAGE — speak AS Elohim Astrea and Mother Mary, warmly, about ${who} (not about the pilgrim's psychology).
+3. THE PRACTICE — the attunement: protect, attune with love, see the blue-white Circle & Sword cut free, re-image ${who} whole, release with love.
+4. THE INVOCATION — a full NINE-VERSE healing decree naming ${who}, the six-line 'Hail Mary, Mother of Light' refrain IN FULL after every verse, verse 8 balance, verse 9 seal, and a Divine-Mother sealing. Use the retrieved source passages below.`;
+  } else {
+   const a=this.invokeAnalysis(txt);const body=this.bodyRead(txt);
+   this._invA=a;
+   reading=`<div class="signpost" style="border-left-color:var(--blue)"><b>The reading of the wheels</b><br>
+    <span class="small">${a.witnesses.map(w=>`${sgHTML(w.st,w.st===a.st?"#eccd6f":"#c9a227",13)} ${STATIONS[w.st].sign} — ${w.label}`).join("<br>")}<br>
+    Seat answered: <b>${a.s.sign}</b> under <b>${a.s.master}</b> · esoteric ruler ${a.eso} → Ray ${a.esoRay} (${DK_RAY[a.esoRay]}) · Chohan ${a.chohan}${body?`<br>Where it lives: ${body.note}`:""}</span></div>`;
+   ctx=`The pilgrim is in THE INVOCATION module and asks for a CHANNELED DICTATION about THEIR OWN situation. The wheels have been read: the seat answered is ${a.s.sign} (${a.s.exploit}), the knight-self is ${a.s.self}, the master of the seat is ${a.s.master}, the esoteric ruler is ${a.eso} carrying Ray ${a.esoRay} under ${a.chohan}, the planetary year ray is Ray ${a.wr}, the pilgrim's Clock line is ${a.pr>0?"Ray "+a.pr:"unknown"}.
+Answer EXACTLY in this dictation form, headers exactly:
+1. A TITLE in capitals ('ON THE ... — WHY ...').
+2. THE RIDDLE — a four-line AABB riddle whose hidden answer is the knight-self; do NOT name the answer in the riddle.
+3. THE CHANNELED MESSAGE — speak AS ${a.s.master} in first person, reveal the riddle's answer, read the situation through the mirror and cycles. Draw on the retrieved source passages below.
+4. THE TEACHING — seeing, surrender ('you do not slay a self, you let it die'), the quality waiting behind the self.
+5. THE INVOCATION — full NINE-VERSE decree, the six-line 'Hail Mary, Mother of Light' refrain IN FULL after every verse, verse 8 balance, verse 9 seal, the 'I see this self' affirmation, Divine-Mother sealing.`;
+  }
+  out.innerHTML=reading+"<p class='lede'>Scanning the dictations and channeling the answer…</p>";
   let text=null,lane=null;
   if(location.protocol.startsWith("http")){
    try{const r=await fetch("/api/oracle",{method:"POST",headers:{"content-type":"application/json"},
-     body:JSON.stringify({messages:[{role:"user",text:txt}],
-       context:`The pilgrim is in THE INVOCATION module and asks for a CHANNELED DICTATION. The wheels have been read: the seat answered is ${a.s.sign} (${a.s.exploit}), the knight-self is ${a.s.self}, the master of the seat is ${a.s.master}, the esoteric ruler is ${a.eso} carrying Ray ${a.esoRay} under ${a.chohan}, the planetary year ray is Ray ${a.wr}, the pilgrim's Clock line is ${a.pr>0?"Ray "+a.pr:"unknown"}. Cycle witnesses: ${a.witnesses.map(w=>w.label+" -> "+STATIONS[w.st].sign).join("; ")}.
-Answer EXACTLY in this dictation form, with these headers:
-1. A TITLE in capitals, dictation-style (e.g. 'ON THE ... — WHY ...').
-2. THE RIDDLE — a four-line rhymed riddle-poem (AABB) whose hidden answer is the knight-self; do NOT name the answer in the riddle.
-3. THE CHANNELED MESSAGE — speak AS ${a.s.master} in the first person ('I AM ${a.s.master}...'), reveal the riddle's answer, read the situation through the mirror and the cycles named above.
-4. THE TEACHING — the teaching of this seat: seeing, surrender ('you do not slay a self, you let it die'), the quality waiting behind the self.
-5. THE INVOCATION — the full NINE-VERSE decree in the measured form with the six-line 'Hail Mary, Mother of Light' refrain IN FULL after every verse, verse 8 balance, verse 9 seal, the 'I see this self' affirmation, the Divine-Mother sealing.`,
+     body:JSON.stringify({messages:[{role:"user",text:txt}],corpus:true,query:txt,context:ctx,
        name:this.state.name,dob:this.state.dob,natal:this.state.natal,transit:this.transitIdx(),figure:this.state.figure})});
     if(r.ok){const d=await r.json();if(d.lane&&d.lane!=="none"){text=d.counsel;lane=d.lane;}}
    }catch(e){}}
-  if(!text)text=this.invokeBuiltin(txt,a);
+  if(!text)text=who?this.healingBuiltin(txt,who):this.invokeBuiltin(txt,this._invA||this.invokeAnalysis(txt));
   this._lastInvoke=text;
   out.innerHTML=reading+`<div class="card" style="border-color:var(--gold)">
    <div class="kicker" style="text-align:left">${lane?"The dictation · living lane ("+lane+")":"The dictation · the built-in voice"}</div>
@@ -1378,6 +1498,7 @@ The sign that the working is answered usually comes in the night: a dream that r
   if(location.protocol.startsWith("http")){
    try{const r=await fetch("/api/oracle",{method:"POST",headers:{"content-type":"application/json"},
      body:JSON.stringify({question:"A pilgrim lays this issue before the masters and asks for their answer in the manner of the Ascended Master answers, and a daily decree to work on it: "+txt,
+       corpus:true,query:txt,
        name:this.state.name,dob:this.state.dob,time:this.state.time,place:this.state.place,
        natal:this.state.natal,transit:this.transitIdx(),figure:this.state.figure})});
     if(r.ok){const d=await r.json();if(d.lane&&d.lane!=="none"){w.answer=d.counsel;w.lane=d.lane;}}
@@ -1514,7 +1635,7 @@ The sign that the working is answered usually comes in the night: a dream that r
   let reply=null,lane="built-in";
   if(location.protocol.startsWith("http")){
    try{const r=await fetch("/api/oracle",{method:"POST",headers:{"content-type":"application/json"},
-     body:JSON.stringify({messages:this.state.chat.map(m=>({role:m.role,text:m.text})),
+     body:JSON.stringify({messages:this.state.chat.map(m=>({role:m.role,text:m.text})),corpus:true,query:q,
        name:this.state.name,dob:this.state.dob,time:this.state.time,place:this.state.place,
        natal:this.state.natal,transit:this.transitIdx(),figure:this.state.figure})});
     if(r.ok){const d=await r.json();if(d.lane&&d.lane!=="none"){reply=d.counsel;lane=d.lane;}}
@@ -1567,7 +1688,7 @@ The sign that the working is answered usually comes in the night: a dream that r
   if(location.protocol.startsWith("http")){
    try{const r=await fetch("/api/oracle",{method:"POST",headers:{"content-type":"application/json"},
      body:JSON.stringify({messages:this.state.chat.map(m=>({role:m.role,text:m.text})),
-       context:this.screenContext(),
+       context:this.screenContext(),corpus:true,query:q,
        name:this.state.name,dob:this.state.dob,time:this.state.time,place:this.state.place,
        natal:this.state.natal,transit:this.transitIdx(),figure:this.state.figure})});
     if(r.ok){const d=await r.json();if(d.lane&&d.lane!=="none"){reply=d.counsel;lane=d.lane;}}
@@ -1702,6 +1823,9 @@ THE COUNSEL ASKED
    document.getElementById("skyChallenges").innerHTML="";this.renderRayMap(null,null);return;}
   const bd=this.birthDate(),now=new Date();
   const natal=this.planetLons(bd,vedic),trans=this.planetLons(now,vedic);
+  /* the natal seat follows the ACTUAL Sun of the chosen zodiac (cusp-safe), unless set by hand */
+  if(natal&&!this.state.natalManual){const sun=natal.find(p=>p.name==="Sun");
+   if(sun&&sun.sign!==this.state.natal){this.state.natal=sun.sign;this.save();this.wheel&&this.wheel();}}
   const dot=(arr,rr,color)=>{if(!arr)return;const seen={};
    arr.forEach(p=>{const k=Math.round(p.lon/7);seen[k]=(seen[k]||0)+1;const off=(seen[k]-1)*11;
     const a=ang(p.lon),x=cx+(rr-off)*Math.cos(a),y=cy+(rr-off)*Math.sin(a);
@@ -1709,7 +1833,9 @@ THE COUNSEL ASKED
   dot(natal,R-58,"#eccd6f");dot(trans,R-94,"#8fa8c9");
   wheel.innerHTML=g;
   const signName=i=>STATIONS[i].sign;
-  let info=`<div class="legend" style="margin:2px 0 8px"><span><span class="dot" style="background:#eccd6f"></span> your birth planets</span><span><span class="dot" style="background:#8fa8c9"></span> today's transits</span></div>`;
+  const sunP=natal&&natal.find(p=>p.name==="Sun");
+  let info=`<div class="signpost" style="border-left-color:${vedic?"#e08cb0":"var(--goldb)"}"><b>${vedic?"VEDIC (sidereal)":"WESTERN (tropical)"} zodiac</b>${vedic?` — ayanamsa ${this.ayan(bd||now).toFixed(1)}° subtracted (Lahiri): every planet stands ~24° earlier than the Western wheel`:""}.${sunP?` In this sky your <b>Sun stands in ${signName(sunP.sign)}</b> — and your seat at the Table follows it.`:""}</div>
+  <div class="legend" style="margin:2px 0 8px"><span><span class="dot" style="background:#eccd6f"></span> your birth planets</span><span><span class="dot" style="background:#8fa8c9"></span> today's transits</span></div>`;
   info+=`<div class="tablewrap"><table><tr><th>Planet</th><th>Birth (${vedic?"sidereal":"tropical"})</th><th>Today</th></tr>`;
   PLANETS.forEach(([name,ab],k)=>{const n=natal&&natal.find(p=>p.name===name),t=trans&&trans.find(p=>p.name===name);
    info+=`<tr><td>${name}</td><td>${n?signName(n.sign)+" "+(n.lon%30).toFixed(0)+"°":"—"}</td><td>${t?signName(t.sign)+" "+(t.lon%30).toFixed(0)+"°":"—"}</td></tr>`;});
