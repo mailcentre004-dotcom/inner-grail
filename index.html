@@ -1156,40 +1156,74 @@ In the name of the Divine Mother, I fully accept that the power of these calls i
   const chy=150;
   g+=`<ellipse cx="${cx}" cy="${chy}" rx="20" ry="30" fill="none" stroke="#c9a9e6" stroke-width="1.6" opacity="0.75"/>`;
   g+=`<text x="${cx}" y="${chy+3}" text-anchor="middle" style="fill:#c9a9e6;font-size:9px;letter-spacing:1px">CHRIST SELF</text>`;
-  /* ---- the Vitruvian frame: circle + square ---- */
-  const fy=390,figR=150;
-  g+=`<rect x="${cx-figR}" y="${fy-figR}" width="${figR*2}" height="${figR*2}" fill="none" stroke="var(--line)" stroke-width="1.4"/>`;
-  g+=`<circle cx="${cx}" cy="${fy-8}" r="${figR-6}" fill="none" stroke="var(--gold)" stroke-width="1.4" opacity="0.7"/>`;
-  /* ---- the figure (Vitruvian double pose) ---- */
-  const S="#d8cfb4",sw=3.2;
-  const head=fy-figR+34;
-  g+=`<circle cx="${cx}" cy="${head}" r="17" fill="none" stroke="${S}" stroke-width="${sw}"/>`;      /* head */
-  g+=`<line x1="${cx}" y1="${head+17}" x2="${cx}" y2="${fy+70}" stroke="${S}" stroke-width="${sw}"/>`; /* spine to hips */
-  /* arms: two positions (out level + raised) */
-  g+=`<line x1="${cx}" y1="${head+40}" x2="${cx-128}" y2="${head+40}" stroke="${S}" stroke-width="${sw}"/>`;
-  g+=`<line x1="${cx}" y1="${head+40}" x2="${cx+128}" y2="${head+40}" stroke="${S}" stroke-width="${sw}"/>`;
-  g+=`<line x1="${cx}" y1="${head+52}" x2="${cx-116}" y2="${head-6}" stroke="${S}" stroke-width="${sw}" opacity="0.85"/>`;
-  g+=`<line x1="${cx}" y1="${head+52}" x2="${cx+116}" y2="${head-6}" stroke="${S}" stroke-width="${sw}" opacity="0.85"/>`;
-  /* legs: two positions (together + apart) */
-  g+=`<line x1="${cx}" y1="${fy+70}" x2="${cx-30}" y2="${fy+150}" stroke="${S}" stroke-width="${sw}"/>`;
-  g+=`<line x1="${cx}" y1="${fy+70}" x2="${cx+30}" y2="${fy+150}" stroke="${S}" stroke-width="${sw}"/>`;
-  g+=`<line x1="${cx}" y1="${fy+70}" x2="${cx-70}" y2="${fy+140}" stroke="${S}" stroke-width="${sw}" opacity="0.85"/>`;
-  g+=`<line x1="${cx}" y1="${fy+70}" x2="${cx+70}" y2="${fy+140}" stroke="${S}" stroke-width="${sw}" opacity="0.85"/>`;
-  /* ---- the seven rays as centres along the spine (crown -> base) ---- */
-  const centres=[head-2,head+22,head+40,head+70,head+104,head+140,fy+70];  /* crown, throat/3rd-eye, heart-high... to base */
-  const rayOrder=[7,6,5,4,3,2,1]; /* crown highest ray down to base */
+  /* ---- LEONARDO'S PAGE: the parchment sheet ---- */
+  const INK="#5a4632",INKL="#8a744f";
+  g+=`<rect x="38" y="212" width="324" height="396" rx="5" fill="#e7dab9"/>
+      <rect x="38" y="212" width="324" height="396" rx="5" fill="none" stroke="#b9a87e" stroke-width="1.5"/>
+      <rect x="42" y="216" width="316" height="388" rx="4" fill="none" stroke="#cbbb92" stroke-width="0.7"/>`;
+  /* the mirror-script lines of the notebook (top of the page) */
+  for(let i=0;i<3;i++){let lx=54;const yy=228+i*9;
+   while(lx<252){const w=6+((lx*7+i*13)%14);g+=`<line x1="${lx}" y1="${yy}" x2="${lx+w}" y2="${yy}" stroke="${INKL}" stroke-width="1" opacity="0.6"/>`;lx+=w+4;}}
+  /* ---- the geometry: square tangent to the circle at the feet, circle centred on the navel ---- */
+  const sq={x1:70,x2:330,y1:300,y2:560};
+  const nav={x:cx,y:428},cr=132;
+  g+=`<rect x="${sq.x1}" y="${sq.y1}" width="${sq.x2-sq.x1}" height="${sq.y2-sq.y1}" fill="none" stroke="${INK}" stroke-width="1.6" opacity="0.85"/>`;
+  g+=`<circle cx="${nav.x}" cy="${nav.y}" r="${cr}" fill="none" stroke="${INK}" stroke-width="1.6" opacity="0.85"/>`;
+  /* Leonardo's measure lines (faint) with end ticks */
+  [[296,"crown"],[328,"chin"],[344,"shoulder"],[428,"navel"],[441,"seat"],[560,"sole"]].forEach(([yy])=>{
+   g+=`<line x1="${sq.x1-6}" y1="${yy}" x2="${sq.x2+6}" y2="${yy}" stroke="${INKL}" stroke-width="0.8" opacity="0.4"/>
+       <line x1="${sq.x1-6}" y1="${yy-3}" x2="${sq.x1-6}" y2="${yy+3}" stroke="${INKL}" stroke-width="0.8" opacity="0.5"/>
+       <line x1="${sq.x2+6}" y1="${yy-3}" x2="${sq.x2+6}" y2="${yy+3}" stroke="${INKL}" stroke-width="0.8" opacity="0.5"/>`;});
+  /* ---- the figure, in ink: superimposed double pose ---- */
+  const P=(d,w,o)=>`<path d="${d}" fill="none" stroke="${INK}" stroke-width="${w||2.6}" stroke-linecap="round" stroke-linejoin="round" opacity="${o||1}"/>`;
+  /* head: skull, jaw, curling hair, brow line */
+  g+=P(`M184,314 a16,17 0 1,1 32,0 a16,18 0 1,1 -32,0`,2.2);
+  g+=P(`M186,306 q-5,10 -1,18 M214,306 q5,10 1,18`,1.2,0.7);            /* temples */
+  g+=P(`M185,303 q4,-9 15,-9 q11,0 15,9 M187,299 q-4,6 -3,12 M213,299 q4,6 3,12`,1.6,0.9); /* hair crown */
+  g+=P(`M188,300 q-6,8 -4,20 M212,300 q6,8 4,20 M191,297 q-7,10 -6,24 M209,297 q7,10 6,24`,1.1,0.6); /* falling locks */
+  g+=P(`M193,316 h5 M202,316 h5`,1.4,0.85);                              /* eyes */
+  g+=P(`M199,320 q1,3 0,5 M195,329 q5,3 10,0`,1.1,0.7);                  /* nose, mouth */
+  /* neck */
+  g+=P(`M192,330 q-2,7 -5,12 M208,330 q2,7 5,12`,2.2);
+  /* torso: trapezius, chest, waist, hips */
+  g+=P(`M187,342 q13,-6 26,0`,2);                                        /* clavicle line */
+  g+=P(`M172,346 q-2,26 8,52 q4,14 2,30 M228,346 q2,26 -8,52 q-4,14 -2,30`,2.6); /* sides to hips */
+  g+=P(`M183,362 q8,7 17,7 q9,0 17,-7`,1.4,0.8);                          /* pectoral line */
+  g+=P(`M200,352 v72`,1.2,0.55);                                          /* sternum-navel line */
+  g+=P(`M196,428 a4,4 0 1,0 8,0 a4,4 0 1,0 -8,0`,1.2,0.7);                /* navel */
+  g+=P(`M182,428 q18,8 36,0`,1.2,0.5);                                    /* abdomen line */
+  g+=P(`M186,441 q14,10 28,0`,1.6,0.8);                                   /* groin */
+  /* ARMS — pose 1: level, fingertips at the square's sides */
+  g+=P(`M172,348 q-24,2 -48,4 q-26,2 -50,3`,3);g+=P(`M228,348 q24,2 48,4 q26,2 50,3`,3);
+  g+=P(`M172,356 q-24,3 -47,5 q-25,2 -49,3`,2,0.75);g+=P(`M228,356 q24,3 47,5 q25,2 49,3`,2,0.75);
+  g+=P(`M74,352 l-5,-3 M74,355 l-6,0 M74,358 l-5,3`,1.4);g+=P(`M326,352 l5,-3 M326,355 l6,0 M326,358 l5,3`,1.4); /* fingers */
+  /* ARMS — pose 2: raised, fingertips on the circle */
+  g+=P(`M174,344 q-22,-8 -38,-16 q-14,-7 -25,2`,2.6,0.8);g+=P(`M226,344 q22,-8 38,-16 q14,-7 25,2`,2.6,0.8);
+  g+=P(`M112,331 l-6,-2 M113,334 l-6,1 M114,337 l-5,3`,1.3,0.8);g+=P(`M288,331 l6,-2 M287,334 l6,1 M286,337 l5,3`,1.3,0.8);
+  /* LEGS — pose 1: together, soles on the square's base */
+  g+=P(`M190,442 q-3,40 -2,60 q1,28 0,54 M210,442 q3,40 2,60 q-1,28 0,54`,3);
+  g+=P(`M188,556 l-14,3 M212,556 l14,3`,2.2);                              /* feet */
+  g+=P(`M193,470 q-2,30 -1,50 M207,470 q2,30 1,50`,1.2,0.5);               /* inner leg lines */
+  /* LEGS — pose 2: spread, soles on the circle */
+  g+=P(`M188,444 q-20,30 -34,48 q-16,22 -28,42 M212,444 q20,30 34,48 q16,22 28,42`,2.6,0.8);
+  g+=P(`M126,534 l-13,7 M274,534 l13,7`,2,0.8);                            /* turned feet */
+  /* caption, notebook-style */
+  g+=`<text x="${cx}" y="595" text-anchor="middle" style="fill:${INKL};font-size:9px;font-style:italic;letter-spacing:1.5px">— the measure of man is the measure of the cosmos —</text>`;
+  /* ---- the seven ray-centres on the body (luminous, over the ink) ---- */
+  const centres=[296,314,334,368,400,428,452];  /* crown, brow, throat, heart, solar, sacral(navel), base */
+  const rayOrder=[7,6,5,4,3,2,1];
   for(let i=0;i<7;i++){const rn=rayOrder[i];const y=centres[i];const on=present[rn];
    const soul=rn===soulRay;const purify=rn===A.pressed&&A.planets.length>1;
-   g+=`<circle cx="${cx}" cy="${y}" r="${soul?11:8}" fill="${ray(rn)}" opacity="${on?0.95:0.35}"/>`;
-   if(soul)g+=`<circle cx="${cx}" cy="${y}" r="15" fill="none" stroke="#eccd6f" stroke-width="2"/>`;
-   if(purify)g+=`<circle cx="${cx}" cy="${y}" r="19" fill="none" stroke="#e8c34a" stroke-width="2" stroke-dasharray="4 4"><animate attributeName="r" values="16;22;16" dur="2.6s" repeatCount="indefinite"/><animate attributeName="opacity" values="0.9;0.35;0.9" dur="2.6s" repeatCount="indefinite"/></circle>
-    <text x="${cx-figR+2}" y="${y+3}" style="fill:#e8c34a;font-size:9.5px">◉ purify</text>`;
-   g+=`<text x="${cx+figR-2}" y="${y+3}" text-anchor="end" style="fill:${on?ray(rn):'#5a6079'};font-size:9.5px">Ray ${rn}${soul?" · soul":""}${purify?" · the year's work":""}</text>`;}
+   g+=`<circle cx="${cx}" cy="${y}" r="${soul?9:7}" fill="${ray(rn)}" opacity="${on?0.95:0.4}" stroke="#fff" stroke-width="${on?1:0}"/>`;
+   if(soul)g+=`<circle cx="${cx}" cy="${y}" r="13" fill="none" stroke="#b8860b" stroke-width="2"/>`;
+   if(purify)g+=`<circle cx="${cx}" cy="${y}" r="17" fill="none" stroke="#b8860b" stroke-width="2" stroke-dasharray="4 4"><animate attributeName="r" values="14;20;14" dur="2.6s" repeatCount="indefinite"/><animate attributeName="opacity" values="0.9;0.35;0.9" dur="2.6s" repeatCount="indefinite"/></circle>
+    <text x="46" y="${y+3}" style="fill:#8a6d1f;font-size:9px">◉ purify</text>`;
+   g+=`<text x="354" y="${y+3}" text-anchor="end" style="fill:${on?INK:'#a4966f'};font-size:9px">Ray ${rn}${soul?" · soul":""}${purify?" · the work":""}</text>`;}
   /* ---- the threefold flame at the heart ---- */
-  const hy=head+70;
-  g+=`<path d="M${cx-6},${hy+6} Q${cx-6},${hy-8} ${cx-2},${hy-10}" fill="none" stroke="#5b8dd9" stroke-width="3" stroke-linecap="round"/>`;
-  g+=`<path d="M${cx},${hy+7} Q${cx},${hy-12} ${cx},${hy-13}" fill="none" stroke="#e8c34a" stroke-width="3" stroke-linecap="round"/>`;
-  g+=`<path d="M${cx+6},${hy+6} Q${cx+6},${hy-8} ${cx+2},${hy-10}" fill="none" stroke="#e08cb0" stroke-width="3" stroke-linecap="round"/>`;
+  const hy=368;
+  g+=`<path d="M${cx-6},${hy+6} Q${cx-6},${hy-8} ${cx-2},${hy-10}" fill="none" stroke="#3b6bc9" stroke-width="3" stroke-linecap="round"/>`;
+  g+=`<path d="M${cx},${hy+7} Q${cx},${hy-12} ${cx},${hy-13}" fill="none" stroke="#d4a017" stroke-width="3" stroke-linecap="round"/>`;
+  g+=`<path d="M${cx+6},${hy+6} Q${cx+6},${hy-8} ${cx+2},${hy-10}" fill="none" stroke="#d06a9a" stroke-width="3" stroke-linecap="round"/>`;
   svg.innerHTML=g;
   /* the reading */
   const info=document.getElementById("presenceInfo");if(!info)return;
