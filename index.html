@@ -120,6 +120,7 @@
     padding:8px 12px;cursor:pointer;border-radius:6px;display:flex;flex-direction:column;align-items:center;gap:3px}
   .nav button .ic{font-size:17px}
   .nav button.on{color:var(--goldb);background:rgba(201,162,39,.08)}
+  @media (max-width:520px){.nav button{padding:8px 6px;font-size:10px}.nav button .ic{font-size:15px}}
   footer{text-align:center;color:#565d78;font-size:11px;letter-spacing:.08em;margin:30px 0 8px;line-height:1.8}
 </style>
 
@@ -181,6 +182,24 @@
     <div id="skyInfo"></div>
     <h3>The challenges arising now</h3>
     <div id="skyChallenges"></div>
+  </div>
+</div>
+
+<!-- ==================== THE VIGIL (personal working) ==================== -->
+<div class="screen" id="vigil">
+  <div style="height:18px"></div>
+  <div class="card">
+    <h2>The Vigil — bring an issue to the masters</h2>
+    <p class="lede">Before a knight rode out, he kept the night-watch. Describe the issue, the resistance, the situation you keep meeting — in your own words. It is read in the light of the teachings, the masters answer, and you receive a decree to give <b>daily</b> until the answer comes — often as a dream. When it does, bring the dream to the Dream Gate and it is joined to this working.</p>
+    <label>The issue — what you are up against</label>
+    <textarea id="vigilTxt" placeholder="Every time I try to move forward with my work, something in me resists — I delay, I doubt, I find reasons to wait…"></textarea>
+    <button class="btn" onclick="app.newWorking()">Lay it before the Table</button>
+    <div id="vigilNew"></div>
+  </div>
+  <div class="card">
+    <h2>Your workings</h2>
+    <p class="lede">Each working is a figure-eight in motion: the daily decree is the <b>outgoing current</b>; the dream, the prompting, the shift is the <b>return current</b>. Keep the decree daily and watch the nights.</p>
+    <div id="vigilList"></div>
   </div>
 </div>
 
@@ -266,6 +285,7 @@
   <button data-s="home"><span class="ic">◉</span>Wheel</button>
   <button data-s="today"><span class="ic">☀</span>Today</button>
   <button data-s="chart"><span class="ic">☉</span>Sky</button>
+  <button data-s="vigil"><span class="ic">⚔</span>Vigil</button>
   <button data-s="dreams"><span class="ic">☾</span>Dreams</button>
   <button data-s="oracle"><span class="ic">✶</span>Oracle</button>
   <button data-s="me"><span class="ic">⚱</span>My Quest</button>
@@ -470,7 +490,7 @@ const PLANETS=[["Sun","Su"],["Moon","Mo"],["Mercury","Me"],["Venus","Ve"],["Mars
 /* ============================ APP ============================ */
 const app={
  state:{name:"",dob:"",time:"",place:"",natal:-1,done:Array(12).fill(false),posts:[],
-        questDates:[],onboarded:false,chartMode:"western",chat:[]},
+        questDates:[],onboarded:false,chartMode:"western",chat:[],workings:[]},
 
  load(){try{const s=JSON.parse(localStorage.getItem("innerGrail2")||"null");if(s)this.state={...this.state,...s};}catch(e){}},
  save(){localStorage.setItem("innerGrail2",JSON.stringify(this.state));},
@@ -536,7 +556,8 @@ const app={
   window.scrollTo(0,0);
   if(id==="chart")this.renderSky();
   if(id==="oracle"){this.setAIStatus();this.renderChat();}
-  if(id==="dreams")this.renderDiary();},
+  if(id==="dreams")this.renderDiary();
+  if(id==="vigil")this.renderVigil();},
 
  /* ---------- wheel ---------- */
  wheel(){const svg=document.getElementById("wheel");const cx=200,cy=200,R=156,r=25;let g="";
@@ -656,11 +677,17 @@ In the name of the Divine Mother, I fully accept that the power of these calls i
   const s=STATIONS[st];
   const syms=shadow.map(h=>h.sym);
   const post={id:Date.now(),date:this.todayKey(),text:orig.slice(0,800),st,syms,
-   giftText:gifts.length?gifts[0].gift:null,polarity,interp:null};
+   giftText:gifts.length?gifts[0].gift:null,polarity,interp:null,workingId:null};
+  /* joined to a working? (came via "A dream came", or exactly one working is active) */
+  let linkedW=null;const actW=(this.state.workings||[]).filter(x=>x.status==="active");
+  if(this._workLink){linkedW=(this.state.workings||[]).find(x=>x.id===this._workLink);this._workLink=null;}
+  else if(actW.length===1)linkedW=actW[0];
+  if(linkedW){post.workingId=linkedW.id;linkedW.dreamIds=linkedW.dreamIds||[];linkedW.dreamIds.push(post.id);}
   /* sequential connections: prior dreams sharing this seat or a symbol */
   const prior=this.state.posts.filter(p=>p.st===st||(p.syms&&syms.some(x=>p.syms.includes(x))));
   this.state.posts.push(post);document.getElementById("dreamTxt").value="";this.save();
-  const conn=prior.length?`<div class="signpost" style="border-left-color:var(--blue)"><b>This continues a thread.</b> You have dreamed toward the ${s.sign} seat ${prior.length} time${prior.length>1?"s":""} before (${prior.slice(-3).map(p=>p.date).join(", ")}). Dreams come in sequence — the masters are pressing this one point until it is seen.</div>`:"";
+  const wnote=linkedW?`<div class="signpost" style="border-left-color:var(--goldb)"><b>The return current has reached you.</b> This dream is joined to your working — <i>“${this.esc(linkedW.text.slice(0,90))}${linkedW.text.length>90?"…":""}”</i>. The call went out in the decree; this is the answer coming back. Read it against that working on the Vigil.</div>`:"";
+  const conn=wnote+(prior.length?`<div class="signpost" style="border-left-color:var(--blue)"><b>This continues a thread.</b> You have dreamed toward the ${s.sign} seat ${prior.length} time${prior.length>1?"s":""} before (${prior.slice(-3).map(p=>p.date).join(", ")}). Dreams come in sequence — the masters are pressing this one point until it is seen.</div>`:"");
   let block;
   if(polarity==="gift"){
    block=`<div class="signpost" style="border-left-color:var(--goldb)"><b>A GIFT is being given.</b> ${gifts.map(g=>g.gift).join("; ")}.<br><br>
@@ -705,6 +732,87 @@ In the name of the Divine Mother, I fully accept that the power of these calls i
     :`The dream mirrors the ${s.sign} seat — ${s.exploit}. ${s.exploitNote} The self it shows is ${s.self}. See it, do not fight it, and let it die into ${s.quality.split("—")[0].trim()}. (Built-in reading — open the living app for Merlin's full voice.)`;}
   p.interp=reply;this.save();el.textContent=reply;this.renderDiary();},
 
+ /* ---------- THE VIGIL — a personal working: issue -> masters' answer -> daily decree -> the dream ---------- */
+ workingSeat(text){const low=text.toLowerCase();
+  const hits=ASPECT_LEX.filter(e=>e.keys.some(k=>low.includes(k)));
+  if(!hits.length)return {st:this.state.natal>=0?this.state.natal:this.transitIdx(),
+   why:"when the words do not name it, the quest returns you to the seat that holds you deepest"};
+  const c={};hits.forEach(h=>c[h.st]=(c[h.st]||0)+1);
+  const st=+Object.entries(c).sort((a,b)=>b[1]-a[1])[0][0];
+  return {st,why:hits.find(h=>h.st===st).why};},
+ workingAnswerLocal(w){const s=STATIONS[w.st];
+  return `Question laid before the Table: "${w.text}"
+
+The masters answer: what you meet is not an outer wall — it is the mirror. The resistance lives in the ${s.sign} seat of your own table: ${w.why}. The self that rides there is ${s.self}. It was made long ago to protect you, and it repeats its one move whenever this ground is touched.
+
+You cannot push through this self, for pushing feeds it. The way of the Table is threefold: SEE it (it is a self, it is not you); CALL the light upon it — give the decree below once daily, aloud, until the answer comes; and be WILLING to let it die — "you do not slay a self, you let it die." Behind it waits ${s.quality}.
+
+This is ${s.exploit}: ${s.exploitNote}
+
+The sign that the working is answered usually comes in the night: a dream that replays the pattern or shows it dissolving — ${DREAM_LEX.filter(d=>d.st===w.st).slice(0,3).map(d=>d.sym).join(", ")}. When such a dream comes, bring it to the Dream Gate and join it to this working. That is the return current of the figure-eight.`;},
+ async newWorking(){const txt=(document.getElementById("vigilTxt").value||"").trim();
+  const out=document.getElementById("vigilNew");
+  if(txt.length<8){out.innerHTML="<p class='small'>Describe the issue in a sentence or two — that is enough.</p>";return;}
+  const seat=this.workingSeat(txt);
+  const w={id:Date.now(),date:this.todayKey(),text:txt,st:seat.st,why:seat.why,
+    answer:"",lane:"built-in",saidDates:[],dreamIds:[],status:"active"};
+  out.innerHTML="<p class='lede' style='margin-top:10px'>The Table is considering…</p>";
+  if(location.protocol.startsWith("http")){
+   try{const r=await fetch("/api/oracle",{method:"POST",headers:{"content-type":"application/json"},
+     body:JSON.stringify({question:"A pilgrim lays this issue before the masters and asks for their answer in the manner of the Ascended Master answers, and a daily decree to work on it: "+txt,
+       name:this.state.name,dob:this.state.dob,time:this.state.time,place:this.state.place,
+       natal:this.state.natal,transit:this.transitIdx()})});
+    if(r.ok){const d=await r.json();if(d.lane&&d.lane!=="none"){w.answer=d.counsel;w.lane=d.lane;}}
+   }catch(e){}}
+  if(!w.answer)w.answer=this.workingAnswerLocal(w);
+  this.state.workings=this.state.workings||[];this.state.workings.push(w);
+  document.getElementById("vigilTxt").value="";this.save();
+  out.innerHTML="";this.renderVigil();
+  document.getElementById("w"+w.id)?.scrollIntoView({behavior:"smooth"});},
+ workingDecree(w){return this.completedDecree(w.st,w.text);},
+ saidToday(id){const w=(this.state.workings||[]).find(x=>x.id===id);if(!w)return;
+  const k=this.todayKey();if(!w.saidDates.includes(k))w.saidDates.push(k);
+  this.save();this.renderVigil();},
+ workingStreak(w){const days=[...w.saidDates].sort().reverse();let n=0;const d=new Date();
+  for(;;){const k=d.toISOString().slice(0,10);
+   if(days.includes(k)){n++;d.setDate(d.getDate()-1);}
+   else if(n===0&&k===this.todayKey()){d.setDate(d.getDate()-1);} /* today not yet said */
+   else break;}return n;},
+ dreamCame(id){this._workLink=id;this.show("dreams");
+  const t=document.getElementById("dreamTxt");if(t)t.focus();
+  const out=document.getElementById("dreamOut");
+  if(out)out.innerHTML="<p class='small'>Write the dream above — it will be joined to your working when read.</p>";},
+ completeWorking(id){const w=(this.state.workings||[]).find(x=>x.id===id);if(!w)return;
+  w.status=w.status==="active"?"answered":"active";this.save();this.renderVigil();},
+ removeWorking(id){if(!confirm("Remove this working? Its linked dreams stay in the diary."))return;
+  this.state.workings=(this.state.workings||[]).filter(x=>x.id!==id);this.save();this.renderVigil();},
+ showWorkingDecree(id){const w=(this.state.workings||[]).find(x=>x.id===id);if(!w)return;
+  const el=document.getElementById("wd"+id);if(!el)return;
+  if(el.style.display==="block"){el.style.display="none";return;}
+  el.textContent=this.workingDecree(w);el.style.display="block";},
+ renderVigil(){const el=document.getElementById("vigilList");if(!el)return;
+  const ws=[...(this.state.workings||[])].reverse();
+  if(!ws.length){el.innerHTML="<p class='small'>No workings yet. Lay an issue before the Table above — the watch begins there.</p>";return;}
+  el.innerHTML=ws.map(w=>{const s=STATIONS[w.st];const streak=this.workingStreak(w);
+   const said=w.saidDates.includes(this.todayKey());const answered=w.status==="answered";
+   const dreams=(this.state.posts||[]).filter(p=>p.workingId===w.id);
+   return `<div class="signpost" id="w${w.id}" style="border-left-color:${answered?"var(--goldb)":"var(--blue)"}">
+    <b>${w.date}</b> · ${sgHTML(w.st,"#c9a227",15)} <b>${s.sign}</b> · under ${s.master}
+    ${answered?' · <span style="color:var(--goldb)">answered</span>':""}<br>
+    <span style="color:var(--parch)">“${this.esc(w.text)}”</span><br>
+    <details style="margin-top:6px"><summary class="small" style="cursor:pointer">The masters' answer${w.lane&&w.lane!=="built-in"?" · living counsel ("+w.lane+")":""}</summary>
+     <div class="small" style="white-space:pre-wrap;color:var(--parch);margin-top:6px">${this.esc(w.answer)}</div></details>
+    <div class="small" style="margin-top:6px">Decree given <b>${w.saidDates.length}</b> day${w.saidDates.length===1?"":"s"}${streak>1?" · <b>"+streak+"-day watch</b> unbroken":""}${dreams.length?" · <b>"+dreams.length+"</b> dream"+(dreams.length===1?"":"s")+" received":""}</div>
+    ${dreams.length?`<div class="small" style="color:var(--parch)">${dreams.map(p=>"☾ "+p.date+" — "+STATIONS[p.st].sign+(p.polarity==="gift"?" (a gift)":"")).join("<br>")}</div>`:""}
+    <div style="margin-top:8px">
+     <button class="btn ghost" style="margin:0 6px 6px 0;padding:5px 12px" onclick="app.showWorkingDecree(${w.id})">The daily decree</button>
+     <button class="btn ${said?"ghost":""}" style="margin:0 6px 6px 0;padding:5px 12px" ${said?"disabled":""} onclick="app.saidToday(${w.id})">${said?"✓ given today":"I gave the decree today"}</button>
+     <button class="btn ghost" style="margin:0 6px 6px 0;padding:5px 12px" onclick="app.dreamCame(${w.id})">A dream came</button>
+     <button class="btn ghost" style="margin:0 6px 6px 0;padding:5px 12px" onclick="app.completeWorking(${w.id})">${answered?"Reopen":"Mark answered"}</button>
+     <button class="btn ghost" style="margin:0 0 6px 0;padding:5px 12px" onclick="app.removeWorking(${w.id})">Remove</button>
+    </div>
+    <div class="invo" id="wd${w.id}" style="display:none;white-space:pre-wrap"></div></div>`;}).join("");},
+
  renderThreads(){const el=document.getElementById("dreamThreads");if(!el)return;
   const posts=this.state.posts||[];if(posts.length<2){el.innerHTML="";return;}
   const seat={},sym={};posts.forEach(p=>{seat[p.st]=(seat[p.st]||0)+1;(p.syms||[]).forEach(s=>sym[s]=(sym[s]||0)+1);});
@@ -724,6 +832,7 @@ In the name of the Divine Mother, I fully accept that the power of these calls i
   el.innerHTML=posts.map(p=>{const s=STATIONS[p.st];const gift=p.polarity==="gift";
    return `<div class="signpost" ${gift?'style="border-left-color:var(--goldb)"':''}>
     <b>${p.date}</b> · ${sgHTML(p.st,gift?"#eccd6f":"#c9a227",15)} <b>${s.sign}</b> · <span style="color:${gift?'var(--goldb)':'var(--rose)'}">${gift?"a gift to receive":"a self to surrender"}</span><br>
+    ${p.workingId&&(this.state.workings||[]).some(w=>w.id===p.workingId)?`<span class="small" style="color:var(--goldb)">↺ answers your working: “${this.esc(((this.state.workings||[]).find(w=>w.id===p.workingId)||{}).text.slice(0,70))}…”</span><br>`:""}
     ${p.text?`<span style="color:var(--parch)">“${this.esc(p.text)}”</span><br>`:""}
     <span class="small">${p.syms&&p.syms.length?"Symbols: "+p.syms.join(", ")+". ":""}${gift&&p.giftText?p.giftText+".":"The self: "+s.self.split("—")[0].trim()+"."}</span>
     ${p.interp?`<br><span class="small" style="color:var(--parch)">— Merlin: ${this.esc(p.interp).slice(0,600)}</span>`:""}
