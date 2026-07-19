@@ -2,5 +2,8 @@
   "name": "the-inner-grail",
   "version": "1.0.0",
   "description": "The Inner Grail — the Round Table quest, with a live AI Oracle (Gemini).",
-  "private": true
+  "private": true,
+  "dependencies": {
+    "astronomy-engine": "^2.1.19"
+  }
 }

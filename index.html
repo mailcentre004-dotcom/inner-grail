@@ -81,6 +81,14 @@
 
   .invo{white-space:pre-wrap;background:#0c1022;border:1px solid var(--line);border-radius:6px;
     padding:22px 24px;line-height:1.66;font-size:14.5px;margin-top:12px}
+  .chatlog{display:flex;flex-direction:column;gap:12px;margin:14px 0;max-height:60vh;overflow-y:auto;padding:4px}
+  .msg{max-width:88%;padding:12px 15px;border-radius:12px;line-height:1.6;font-size:14.5px;white-space:pre-wrap}
+  .msg.user{align-self:flex-end;background:rgba(143,168,201,.14);border:1px solid #2c3550;color:var(--parch)}
+  .msg.merlin{align-self:flex-start;background:linear-gradient(180deg,#12162c,#161b33);border:1px solid var(--line)}
+  .msg.merlin .who{font-size:10px;letter-spacing:.28em;text-transform:uppercase;color:var(--gold);margin-bottom:5px}
+  .msg.think{align-self:flex-start;color:var(--dim);font-style:italic}
+  .chatrow{display:flex;gap:10px;align-items:flex-end}
+  .chatrow textarea{min-height:52px}
   .sym{display:inline-block;background:rgba(143,168,201,.12);border:1px solid #2c3550;color:var(--blue);
     padding:2px 10px;border-radius:20px;font-size:12.5px;margin:3px 4px 3px 0}
   .signpost{border:1px solid var(--line);border-left:3px solid var(--rose);border-radius:5px;
@@ -157,6 +165,25 @@
 <!-- ==================== TODAY ==================== -->
 <div class="screen" id="today"><div style="height:18px"></div><div id="todayFull"></div></div>
 
+<!-- ==================== CHART / SKY ==================== -->
+<div class="screen" id="chart">
+  <div style="height:18px"></div>
+  <div class="card">
+    <h2>The Sky — your chart &amp; today's transits</h2>
+    <p class="lede">Your birth planets (gold) and today's moving planets (blue) around the wheel of the twelve. Where a planet stands, its seat's test is stirred. Switch between the Western (tropical) and Vedic (sidereal) zodiac.</p>
+    <div class="row" style="align-items:center;margin-top:6px">
+      <div style="flex:0 0 auto">
+        <button class="btn ghost" id="btnWest" onclick="app.setChartMode('western')" style="margin:0 4px 0 0">Western</button>
+        <button class="btn ghost" id="btnVedic" onclick="app.setChartMode('vedic')" style="margin:0">Vedic</button>
+      </div>
+    </div>
+    <div class="wheelwrap"><svg id="skyWheel" class="wheel" viewBox="0 0 400 400" role="img" aria-label="Your birth chart and transits"></svg></div>
+    <div id="skyInfo"></div>
+    <h3>The challenges arising now</h3>
+    <div id="skyChallenges"></div>
+  </div>
+</div>
+
 <!-- ==================== DREAMS ==================== -->
 <div class="screen" id="dreams">
   <div style="height:18px"></div>
@@ -168,27 +195,32 @@
     <button class="btn" onclick="app.readDream()">Read the dream</button>
     <div id="dreamOut"></div>
   </div>
+  <div class="card">
+    <h2>The Dream Diary</h2>
+    <p class="lede">Every dream you bring, kept as the sealed letters of the masters' reply. The return current of the quest.</p>
+    <div id="dreamDiary"></div>
+  </div>
 </div>
 
 <!-- ==================== ORACLE ==================== -->
 <div class="screen" id="oracle">
   <div style="height:18px"></div>
   <div class="card">
-    <h2>The Oracle — Merlin's Counsel</h2>
+    <h2>The Oracle — talk with Merlin</h2>
     <div id="aiStatus" style="border-radius:6px;padding:10px 14px;margin:8px 0 4px;font-size:13px;line-height:1.5"></div>
-    <p class="lede">The guide told in legend as Merlin — the intuitive knowing, mastery of mind over matter — was set forth by the master who was also Roger Bacon and Francis Bacon: <b>Saint Germain</b>. Describe what is arising in your life, and Merlin answers: which seat is lighting, what the heavens are doing, what it is trying to tell you — and the completed nine-verse decree for that exact aspect.</p>
-    <label>What is arising? (a friction, a fear, a decision, a pattern)</label>
-    <textarea id="oracleTxt" placeholder="I keep feeling passed over at work, and it stings more than it should..."></textarea>
-    <button class="btn" onclick="app.answerOracle()">Ask Merlin</button>
-    <div id="counselOut"></div>
-    <div class="card" style="margin-top:18px;border-style:dashed">
-      <h3 style="margin-top:0">Take it deeper — the living AI</h3>
-      <p class="small">For the full living reading (your birth hour and place, the exact transits, the source teachings), copy the consultation scroll and give it to Claude — the answer returns as Merlin's counsel with a decree crafted line-by-line for you.</p>
-      <button class="btn ghost" onclick="app.buildScroll()">Prepare the consultation scroll</button>
-      <div class="invo" id="oracleOut" style="display:none"></div>
-      <button class="btn ghost" id="oracleCopy" style="display:none" onclick="app.copyScroll()">Copy the scroll for the AI</button>
-      <span class="small" id="oracleNote"></span>
+    <p class="lede">Merlin — the guide the corpus names as the master who was Roger Bacon and Francis Bacon, <b>Saint Germain</b> — will talk with you. Ask about what's arising in your life, the seats, the teachings, the way. He remembers the thread and answers as the counsel of the quest.</p>
+    <div id="chatLog" class="chatlog"></div>
+    <div class="chatrow">
+      <textarea id="chatInput" placeholder="Ask Merlin anything — 'why do I keep feeling unseen?', 'what is the Dweller?', 'how do I let a self die?'"></textarea>
+      <button class="btn" style="margin:0" onclick="app.sendChat()">Ask</button>
     </div>
+    <div style="margin-top:10px">
+      <button class="btn ghost" style="padding:6px 14px;margin:0" onclick="app.buildScroll()">Export a consultation scroll for another AI</button>
+      <button class="btn ghost" style="padding:6px 14px;margin:0" onclick="app.clearChat()">New conversation</button>
+    </div>
+    <div class="invo" id="oracleOut" style="display:none"></div>
+    <button class="btn ghost" id="oracleCopy" style="display:none" onclick="app.copyScroll()">Copy the scroll</button>
+    <span class="small" id="oracleNote"></span>
   </div>
 </div>
 
@@ -225,11 +257,17 @@
 <div class="nav" id="nav" style="display:none">
   <button data-s="home"><span class="ic">◉</span>Wheel</button>
   <button data-s="today"><span class="ic">☀</span>Today</button>
+  <button data-s="chart"><span class="ic">☉</span>Sky</button>
   <button data-s="dreams"><span class="ic">☾</span>Dreams</button>
   <button data-s="oracle"><span class="ic">✶</span>Oracle</button>
   <button data-s="me"><span class="ic">⚱</span>My Quest</button>
 </div>
 
+<!-- astronomy-engine (same-origin, no data files) — shimmed to a browser global.
+     Absent on the sandboxed artifact; the chart guards on typeof Astronomy. -->
+<script>window.module={exports:{}};window.exports=window.module.exports;</script>
+<script src="astronomy-engine.js" onerror="window.__noAstro=1"></script>
+<script>window.Astronomy=(window.module&&window.module.exports&&window.module.exports.GeoVector)?window.module.exports:null;</script>
 <script>
 /* ============================ DATA ============================ */
 const STATIONS=[
@@ -373,10 +411,31 @@ const MICRO=[ /* one micro-practice per station for Today's Quest */
  "Name one enchantment today — a story that binds you — and watch it as a watcher, not a captive.",
 ];
 
+/* zodiac glyphs drawn as SVG paths (0-100 box) so they render on EVERY device,
+   never depending on a system font. Used in the wheel, the seat card, and headings. */
+const GLYPHS=[
+ "M22,68 Q22,32 38,32 Q52,32 50,62 Q52,32 66,32 Q82,32 82,68",                         /* Aries */
+ "M30,44 Q30,22 50,22 Q70,22 70,44 M34,64 a16,16 0 1,0 32,0 a16,16 0 1,0 -32,0",       /* Taurus */
+ "M32,26 L68,26 M32,74 L68,74 M42,26 L42,74 M58,26 L58,74",                            /* Gemini */
+ "M22,42 Q52,26 62,44 M40,40 a7,7 0 1,0 0.1,0 M78,58 Q48,74 38,56 M60,60 a7,7 0 1,0 0.1,0", /* Cancer */
+ "M42,72 a14,14 0 1,1 12,-12 Q74,32 68,56 Q64,72 52,66",                               /* Leo */
+ "M24,32 L24,72 M24,36 Q30,30 36,36 L36,72 M36,36 Q42,30 48,36 L48,64 Q48,80 64,70 Q74,62 62,50", /* Virgo */
+ "M20,74 L80,74 M28,60 L40,60 Q30,60 30,48 A20,20 0 1,1 70,48 Q70,60 60,60 L72,60",    /* Libra */
+ "M20,32 L20,70 M20,36 Q26,30 32,36 L32,70 M32,36 Q38,30 44,36 L44,68 Q44,80 58,74 L74,58 M66,50 L78,58 L70,70", /* Scorpio */
+ "M26,74 L72,28 M50,28 L72,28 L72,50 M34,42 L58,66",                                   /* Sagittarius */
+ "M24,34 Q24,72 42,68 Q56,64 52,48 Q48,36 40,40 M52,50 Q64,70 76,58 A11,11 0 1,0 64,48", /* Capricorn */
+ "M20,44 L32,36 L44,44 L56,36 L68,44 L80,36 M20,60 L32,52 L44,60 L56,52 L68,60 L80,52", /* Aquarius */
+ "M28,24 Q14,50 28,76 M72,24 Q86,50 72,76 M20,50 L80,50",                              /* Pisces */
+];
+function glyphPath(i,color,sw){return `<path d="${GLYPHS[i]}" fill="none" stroke="${color}" stroke-width="${sw||6}" stroke-linecap="round" stroke-linejoin="round"/>`;}
+function sgHTML(i,color,px){color=color||"#c9a227";px=px||18;
+ return `<svg viewBox="0 0 100 100" width="${px}" height="${px}" style="vertical-align:-3px;display:inline-block">${glyphPath(i,color,7)}</svg>`;}
+const PLANETS=[["Sun","Su"],["Moon","Mo"],["Mercury","Me"],["Venus","Ve"],["Mars","Ma"],["Jupiter","Ju"],["Saturn","Sa"],["Uranus","Ur"],["Neptune","Ne"],["Pluto","Pl"]];
+
 /* ============================ APP ============================ */
 const app={
  state:{name:"",dob:"",time:"",place:"",natal:-1,done:Array(12).fill(false),posts:[],
-        questDates:[],onboarded:false},
+        questDates:[],onboarded:false,chartMode:"western",chat:[]},
 
  load(){try{const s=JSON.parse(localStorage.getItem("innerGrail2")||"null");if(s)this.state={...this.state,...s};}catch(e){}},
  save(){localStorage.setItem("innerGrail2",JSON.stringify(this.state));},
@@ -439,7 +498,10 @@ const app={
  show(id){document.querySelectorAll(".screen").forEach(s=>s.classList.remove("on"));
   document.getElementById(id).classList.add("on");
   document.querySelectorAll(".nav button").forEach(b=>b.classList.toggle("on",b.dataset.s===id));
-  window.scrollTo(0,0);},
+  window.scrollTo(0,0);
+  if(id==="chart")this.renderSky();
+  if(id==="oracle"){this.setAIStatus();this.renderChat();}
+  if(id==="dreams")this.renderDiary();},
 
  /* ---------- wheel ---------- */
  wheel(){const svg=document.getElementById("wheel");const cx=200,cy=200,R=156,r=25;let g="";
@@ -452,8 +514,9 @@ const app={
    g+=`<line x1="${cx+(R-42)*Math.cos(a)}" y1="${cy+(R-42)*Math.sin(a)}" x2="${x}" y2="${y}" stroke="var(--line)" stroke-width="1"/>`;
    const cls=["seat",i===this.state.natal?"natal":"",i===this.transitIdx()?"transit":"",this.state.done[i]?"done":"",this._flare===i?"flare":""].join(" ");
    const flag=this.state.posts.some(p=>p.st===i)?`<circle cx="${x+17}" cy="${y-17}" r="4" class="flag"/>`:"";
+   const gcol=this.state.done[i]?"#eccd6f":(i===this.state.natal?"#c9a227":"#f0e7d1");
    g+=`<g class="${cls}" data-i="${i}" role="button" aria-label="${STATIONS[i].sign}"><circle class="ring" cx="${x}" cy="${y}" r="${r}"/>
-     <text x="${x}" y="${y+6}" text-anchor="middle">${STATIONS[i].glyph}</text>${flag}</g>`;}
+     <g transform="translate(${x-11},${y-11}) scale(0.22)">${glyphPath(i,gcol,6)}</g>${flag}</g>`;}
   const fillR=33*Math.min(1,doneN/12);
   g+=`<circle cx="${cx}" cy="${cy}" r="35" fill="#0c1022" stroke="${doneN===12?'var(--goldb)':'var(--line)'}" stroke-width="${doneN===12?3:1.4}"/>
      ${fillR>0?`<circle cx="${cx}" cy="${cy}" r="${fillR}" fill="rgba(201,162,39,.32)"/>`:""}
@@ -526,15 +589,17 @@ In the name of the Divine Mother, I fully accept that the power of these calls i
   this.renderAll();},
 
  /* ---------- dreams ---------- */
- readDream(){const txt=(document.getElementById("dreamTxt").value||"").toLowerCase();
+ readDream(){const orig=(document.getElementById("dreamTxt").value||"").trim();
+  const txt=orig.toLowerCase();
   const o=document.getElementById("dreamOut");
-  if(txt.trim().length<8){o.innerHTML="<p class='lede' style='margin-top:12px'>Write the dream first — even a fragment carries a signpost.</p>";return;}
+  if(txt.length<8){o.innerHTML="<p class='lede' style='margin-top:12px'>Write the dream first — even a fragment carries a signpost.</p>";return;}
   const hits=DREAM_LEX.filter(e=>e.keys.some(k=>txt.includes(k)));
   if(!hits.length){o.innerHTML=`<h3>The gate is quiet</h3><p class="lede">No mapped symbol surfaced. Watch the coming nights for the sword, the water, the door, the cup — the recurring image is the signpost.</p>`;return;}
   const counts={};hits.forEach(h=>counts[h.st]=(counts[h.st]||0)+1);
   const st=Number(Object.entries(counts).sort((a,b)=>b[1]-a[1])[0][0]);
   const s=STATIONS[st];
-  this.state.posts.push({st,syms:hits.map(h=>h.sym),date:this.todayKey()});this.save();
+  this.state.posts.push({st,syms:hits.map(h=>h.sym),date:this.todayKey(),text:orig.slice(0,500)});
+  document.getElementById("dreamTxt").value="";this.save();
   o.innerHTML=`<h3>The symbols that surfaced</h3>
    <p>${hits.map(h=>`<span class="sym">${h.sym}</span>`).join("")}</p>
    ${hits.map(h=>`<p class="small">• <b>${h.sym}</b> — ${h.note}</p>`).join("")}
@@ -544,7 +609,53 @@ In the name of the Divine Mother, I fully accept that the power of these calls i
    A signpost has been set on your wheel at ${s.sign}. The full nine-verse decree waits at that seat.</div>`;
   this.renderAll();},
 
- /* ---------- oracle: Merlin answers ---------- */
+ renderDiary(){const el=document.getElementById("dreamDiary");if(!el)return;
+  const posts=[...this.state.posts].reverse();
+  if(!posts.length){el.innerHTML="<p class='small'>No dreams recorded yet. When one comes, bring it to the gate above — it will be kept here.</p>";return;}
+  el.innerHTML=posts.map(p=>{const s=STATIONS[p.st];
+   return `<div class="signpost"><b>${p.date}</b> · ${sgHTML(p.st,"#c9a227",15)} <b>${s.sign} — ${s.exploit}</b><br>
+   ${p.text?`<span style="color:var(--parch)">“${p.text}”</span><br>`:""}
+   <span class="small">Symbols: ${p.syms.join(", ")}. The self it showed: ${s.self.split("—")[0].trim()}.</span></div>`;}).join("");},
+
+ /* ---------- the Merlin chat (interactive, multi-turn) ---------- */
+ esc(t){return (t||"").replace(/&/g,"&amp;").replace(/</g,"&lt;");},
+ renderChat(){const log=document.getElementById("chatLog");if(!log)return;
+  const chat=this.state.chat||[];
+  if(!chat.length){log.innerHTML=`<div class="msg merlin"><div class="who">Merlin</div>Greetings, ${this.esc(this.state.name)||"pilgrim"}. Tell me what stirs in you — a friction, a fear, a question of the path — and we will read it together: what it mirrors, what it asks, and the call that sets it free. Ask me anything.</div>`;return;}
+  log.innerHTML=chat.map(m=>m.role==="user"
+   ? `<div class="msg user">${this.esc(m.text)}</div>`
+   : `<div class="msg merlin"><div class="who">Merlin${m.lane&&m.lane!=="built-in"?" · living counsel ("+m.lane+")":""}</div>${this.esc(m.text)}</div>`).join("");
+  log.scrollTop=log.scrollHeight;},
+ clearChat(){this.state.chat=[];this.save();this.renderChat();},
+ async sendChat(){const inp=document.getElementById("chatInput");const q=(inp.value||"").trim();
+  if(q.length<2)return;
+  this.state.chat=this.state.chat||[];this.state.chat.push({role:"user",text:q});
+  inp.value="";this.save();this.renderChat();
+  const log=document.getElementById("chatLog");
+  const think=document.createElement("div");think.className="msg think";think.textContent="Merlin is considering…";
+  log.appendChild(think);log.scrollTop=log.scrollHeight;
+  let reply=null,lane="built-in";
+  if(location.protocol.startsWith("http")){
+   try{const r=await fetch("/api/oracle",{method:"POST",headers:{"content-type":"application/json"},
+     body:JSON.stringify({messages:this.state.chat.map(m=>({role:m.role,text:m.text})),
+       name:this.state.name,dob:this.state.dob,time:this.state.time,place:this.state.place,
+       natal:this.state.natal,transit:this.transitIdx()})});
+    if(r.ok){const d=await r.json();if(d.lane&&d.lane!=="none"){reply=d.counsel;lane=d.lane;}}
+   }catch(e){}
+  }
+  if(!reply)reply=this.localCounselText(q);
+  think.remove();
+  this.state.chat.push({role:"merlin",text:reply,lane});this.save();this.renderChat();},
+ localCounselText(q){const low=q.toLowerCase();
+  const hits=ASPECT_LEX.filter(e=>e.keys.some(k=>low.includes(k)));
+  let sti,why;
+  if(hits.length){const c={};hits.forEach(h=>c[h.st]=(c[h.st]||0)+1);
+   sti=+Object.entries(c).sort((a,b)=>b[1]-a[1])[0][0];why=hits.find(h=>h.st===sti).why;}
+  else{sti=this.state.natal>=0?this.state.natal:this.transitIdx();why="the quest returns you to the seat that holds you deepest";}
+  const s=STATIONS[sti];
+  return `I hear you. Nothing is happening to you — the outer is a mirror of the inner. What you bring is the ${s.sign} seat lighting: ${why}. The knight riding there is ${s.self}.\n\nThis is ${s.exploit}: ${s.exploitNote}\n\nThe way is not to fight it but to see it and let it die — and the quality of ${s.quality.split("—")[0].trim()} takes its place. Give this seat's nine-verse invocation (open the ${s.sign} seat on the Wheel), and watch your dreams for its symbols — ${DREAM_LEX.filter(d=>d.st===sti).slice(0,3).map(d=>d.sym).join(", ")} — that is the return current, the masters answering.\n\n(This is my built-in counsel. For a flowing, living conversation, open the app on your computer or your deployed link — there I speak with the living source.)`;},
+
+ /* ---------- the consultation scroll (export to any AI) ---------- */
  completedDecree(i,aspect){
   const base=this.invocation(i);
   return base.replace("[Make personal calls]",
@@ -608,8 +719,10 @@ In the name of the Divine Mother, I fully accept that the power of these calls i
   </div>`;
   o.scrollIntoView({behavior:"smooth"});},
 
- buildScroll(){const q=(document.getElementById("oracleTxt").value||"").trim();
+ buildScroll(){const lastUser=(this.state.chat||[]).filter(m=>m.role==="user").slice(-1)[0];
+  const q=((document.getElementById("chatInput")||{}).value||"").trim()||(lastUser?lastUser.text:"");
   const o=document.getElementById("oracleOut");
+  if(!q){o.style.display="block";o.textContent="Ask Merlin something first (or type it above), then export the scroll.";return;}
   if(q.length<5){o.style.display="block";o.textContent="Describe what is arising — a sentence is enough.";return;}
   const s=this.state.natal>=0?STATIONS[this.state.natal]:null;
   const t=STATIONS[this.transitIdx()];
@@ -663,8 +776,7 @@ THE COUNSEL ASKED
    const mine=i===this.state.natal;
    x.beginPath();x.arc(px,py,mine?46:36,0,7);x.fillStyle="#0c1022";x.fill();
    x.strokeStyle=mine?"#eccd6f":"#242b4c";x.lineWidth=mine?5:2;x.stroke();
-   x.fillStyle=mine?"#eccd6f":"#f0e7d1";x.font=(mine?"52px":"38px")+" Georgia";x.textAlign="center";x.textBaseline="middle";
-   x.fillText(STATIONS[i].glyph,px,py+2);}
+   this.canvasGlyph(x,i,px,py,mine?"#eccd6f":"#f0e7d1",mine?0.56:0.42,mine?5:4);}
   x.beginPath();x.arc(cx,cy,60,0,7);x.fillStyle="#0c1022";x.fill();x.strokeStyle="#c9a227";x.lineWidth=3;x.stroke();
   x.fillStyle="#c9a227";x.font="24px Georgia";x.fillText("GRAIL",cx,cy);
   /* text */ x.textAlign="center";
@@ -680,6 +792,12 @@ THE COUNSEL ASKED
   wrap(`under ${s.master} · ${s.ray} · the self to surrender: ${s.self.split("—")[0].trim()}`,1070,900);
   x.fillStyle="#c9a227";x.font="24px Georgia";x.fillText("— what seat holds you? —",cx,1240);},
 
+ canvasGlyph(ctx,i,cx,cy,color,scale,lw){
+  ctx.save();ctx.translate(cx-50*scale,cy-50*scale);ctx.scale(scale,scale);
+  ctx.strokeStyle=color;ctx.lineWidth=(lw||5)/scale;ctx.lineCap="round";ctx.lineJoin="round";
+  try{ctx.stroke(new Path2D(GLYPHS[i]));}catch(e){}
+  ctx.restore();},
+
  async saveCard(){const c=document.getElementById("seatCanvas");const note=document.getElementById("cardNote");
   if(window.claude&&window.claude.downloads){try{
     const blob=await new Promise(r=>c.toBlob(r,"image/png"));
@@ -689,6 +807,59 @@ THE COUNSEL ASKED
    }catch(e){note.textContent=" the keeping was declined — you can screenshot the card instead.";}}
   else{note.textContent=" long-press or right-click the card to save it.";}
   setTimeout(()=>note.textContent="",4000);},
+
+ /* ---------- the sky: live chart + transits (astronomy-engine, client-side) ---------- */
+ birthDate(){if(!this.state.dob)return null;
+  const p=this.state.dob.split("-").map(Number);let hh=12,mm=0;
+  const t=(this.state.time||"").match(/(\d{1,2})\D?(\d{2})?/);if(t){hh=+t[1];mm=t[2]?+t[2]:0;}
+  return new Date(Date.UTC(p[0],p[1]-1,p[2],hh,mm,0));},
+ ayan(date){const y=date.getUTCFullYear()+date.getUTCMonth()/12;return 23.85+(y-2000)*0.013969;},
+ planetLons(date,sidereal){if(!window.Astronomy||!date)return null;
+  const A=window.Astronomy,ay=sidereal?this.ayan(date):0,out=[];
+  for(const [name,ab] of PLANETS){try{
+   const ecl=A.Ecliptic(A.GeoVector(A.Body[name],date,true));
+   const lon=((ecl.elon-ay)%360+360)%360;
+   out.push({name,ab,lon,sign:Math.floor(lon/30)%12});
+  }catch(e){}}
+  return out;},
+ setChartMode(m){this.state.chartMode=m;this.save();this.renderSky();},
+ renderSky(){const wheel=document.getElementById("skyWheel");if(!wheel)return;
+  const vedic=this.state.chartMode==="vedic";
+  const bw=document.getElementById("btnWest"),bv=document.getElementById("btnVedic");
+  if(bw)bw.classList.toggle("on",!vedic);if(bv)bv.classList.toggle("on",vedic);
+  const cx=200,cy=200,R=150,ang=l=>((180-l)*Math.PI/180);
+  let g=`<circle cx="${cx}" cy="${cy}" r="${R+22}" fill="none" stroke="var(--line)"/><circle cx="${cx}" cy="${cy}" r="${R-40}" fill="none" stroke="var(--line)"/>`;
+  for(let i=0;i<12;i++){const a0=ang(i*30),am=ang(i*30+15);
+   g+=`<line x1="${cx+(R-40)*Math.cos(a0)}" y1="${cy+(R-40)*Math.sin(a0)}" x2="${cx+(R+22)*Math.cos(a0)}" y2="${cy+(R+22)*Math.sin(a0)}" stroke="var(--line)"/>`;
+   const gx=cx+(R+2)*Math.cos(am),gy=cy+(R+2)*Math.sin(am),col=i===this.state.natal?"#c9a227":"#8a93a5";
+   g+=`<g transform="translate(${gx-9},${gy-9}) scale(0.18)">${glyphPath(i,col,7)}</g>`;}
+  if(!window.Astronomy){wheel.innerHTML=g;
+   document.getElementById("skyInfo").innerHTML="<p class='lede'>The live planetary chart runs in the full app (open it locally or on your deployed link). On this shared preview only the seat wheel shows.</p>";
+   document.getElementById("skyChallenges").innerHTML="";return;}
+  const bd=this.birthDate(),now=new Date();
+  const natal=this.planetLons(bd,vedic),trans=this.planetLons(now,vedic);
+  const dot=(arr,rr,color)=>{if(!arr)return;const seen={};
+   arr.forEach(p=>{const k=Math.round(p.lon/7);seen[k]=(seen[k]||0)+1;const off=(seen[k]-1)*11;
+    const a=ang(p.lon),x=cx+(rr-off)*Math.cos(a),y=cy+(rr-off)*Math.sin(a);
+    g+=`<circle cx="${x}" cy="${y}" r="3" fill="${color}"/><text x="${x}" y="${y-5}" text-anchor="middle" style="fill:${color};font-size:9.5px">${p.ab}</text>`;});};
+  dot(natal,R-58,"#eccd6f");dot(trans,R-94,"#8fa8c9");
+  wheel.innerHTML=g;
+  const signName=i=>STATIONS[i].sign;
+  let info=`<div class="legend" style="margin:2px 0 8px"><span><span class="dot" style="background:#eccd6f"></span> your birth planets</span><span><span class="dot" style="background:#8fa8c9"></span> today's transits</span></div>`;
+  info+=`<div class="tablewrap"><table><tr><th>Planet</th><th>Birth (${vedic?"sidereal":"tropical"})</th><th>Today</th></tr>`;
+  PLANETS.forEach(([name,ab],k)=>{const n=natal&&natal.find(p=>p.name===name),t=trans&&trans.find(p=>p.name===name);
+   info+=`<tr><td>${name}</td><td>${n?signName(n.sign)+" "+(n.lon%30).toFixed(0)+"°":"—"}</td><td>${t?signName(t.sign)+" "+(t.lon%30).toFixed(0)+"°":"—"}</td></tr>`;});
+  info+="</table></div>";
+  if(!bd)info+="<p class='small'>Add your birth time on the welcome screen for a sharper Moon and inner-planet placement. (Times are read as UTC; rising sign needs birth coordinates — coming soon.)</p>";
+  document.getElementById("skyInfo").innerHTML=info;
+  /* challenges = transit planets grouped by the seat they light */
+  const bucket={};(trans||[]).forEach(p=>{(bucket[p.sign]=bucket[p.sign]||[]).push(p.name);});
+  const order=Object.keys(bucket).sort((a,b)=>bucket[b].length-bucket[a].length);
+  document.getElementById("skyChallenges").innerHTML=order.length?order.map(si=>{const s=STATIONS[si];
+   return `<div class="signpost"><b>${sgHTML(+si,"#c9a227",16)} ${s.sign} — ${s.exploit}</b> · lit by ${bucket[si].join(", ")}<br>
+   <span class="small">The test: ${s.self}. Free the quality of ${s.quality.split("—")[0].trim()}. ${(+si===this.state.natal)?"<b>This is your natal seat — it presses you by name.</b>":""}</span><br>
+   <button class="btn ghost" style="margin:8px 0 0;padding:6px 14px" onclick="app.show('home');app.openStation(${si})">Open this seat's invocation</button></div>`;}).join(""):"<p class='lede'>The transiting planets are spread across many seats today — no single test dominates. A day to walk lightly.</p>";
+ },
 
  /* ---------- journey table ---------- */
  renderJourney(){const doneN=this.state.done.filter(Boolean).length;
@@ -708,8 +879,8 @@ THE COUNSEL ASKED
   document.getElementById("homeToday").innerHTML=this.todayCard(false);
   document.getElementById("todayFull").innerHTML=this.todayCard(true);
   document.getElementById("homeKick").textContent=this.state.name?`The Wheel of ${this.state.name}`:"The Wheel";
-  document.getElementById("meTitle").textContent=this.state.natal>=0?`${STATIONS[this.state.natal].glyph} The ${STATIONS[this.state.natal].sign} Seat`:"Your Seat";
-  this.renderJourney();this.drawCard();},
+  document.getElementById("meTitle").textContent=this.state.natal>=0?`The ${STATIONS[this.state.natal].sign} Seat`:"Your Seat";
+  this.renderJourney();this.drawCard();this.renderDiary();},
 };
 
 document.querySelectorAll(".nav button").forEach(b=>b.addEventListener("click",()=>app.show(b.dataset.s)));
