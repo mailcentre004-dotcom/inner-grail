@@ -48,7 +48,7 @@ module.exports = async (req, res) => {
   const key = process.env.GEMINI_API_KEY || process.env.GOOGLE_API_KEY;
   if (!key) { res.status(200).json({ counsel: "No GEMINI_API_KEY is set on this deployment. Set it in the host's Environment Variables and redeploy.", lane: "none" }); return; }
 
-  const { question = "", name = "pilgrim", dob = "", time = "", place = "", natal = -1, transit = -1, messages = null, figure = "" } = body;
+  const { question = "", name = "pilgrim", dob = "", time = "", place = "", natal = -1, transit = -1, messages = null, figure = "", context = "" } = body;
   const ctx = STATIONS.map((s, i) => `Seat ${i} = ${s.sign}: master ${s.master}, quality '${s.quality}', knight-self '${s.self}', exploit '${s.exploit}'.`).join("\n");
   const ns = natal >= 0 && natal < 12 ? STATIONS[natal] : null;
   const ts = transit >= 0 && transit < 12 ? STATIONS[transit] : null;
@@ -63,7 +63,7 @@ Today's transit seat: ${ts ? ts.sign + " - " + ts.exploit : "(unknown)"}`;
   if (Array.isArray(messages) && messages.length) {
     const transcript = messages.map(m => (m.role === "user" ? "Pilgrim: " : "Merlin: ") + (m.text || "")).join("\n");
     system = SYSTEM_CHAT;
-    user = `${pilgrim}\n\nTHE TWELVE SEATS (for your reference)\n${ctx}\n\nTHE CONVERSATION SO FAR\n${transcript}\n\nReply as Merlin to the pilgrim's latest message. Do not prefix your reply with "Merlin:".`;
+    user = `${pilgrim}\n\nTHE TWELVE SEATS (for your reference)\n${ctx}\n\n${context ? "CURRENT PAGE\n" + context + "\n\n" : ""}THE CONVERSATION SO FAR\n${transcript}\n\nReply as Merlin to the pilgrim's latest message. Do not prefix your reply with "Merlin:".`;
   } else {
     system = SYSTEM;
     user = `${pilgrim}\n\nWHAT IS ARISING\n"${question}"\n\nTHE TWELVE SEATS (for your mapping)\n${ctx}\n\nRead what is arising through the mirror: which seat lights, which knight-self rides, and craft the counsel and the nine-verse decree for THIS exact aspect, naming ${name}'s situation in the personal calls.`;

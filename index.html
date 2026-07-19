@@ -123,6 +123,22 @@
   .nav button .ic{font-size:17px}
   .nav button.on{color:var(--goldb);background:rgba(201,162,39,.08)}
   @media (max-width:560px){.nav button{padding:8px 4px;font-size:9.5px}.nav button .ic{font-size:14px}.nav{gap:0}}
+
+  /* ---------- ask-Merlin (every screen) ---------- */
+  #askFab{position:fixed;right:14px;bottom:74px;z-index:45;background:var(--panel2);color:var(--goldb);
+    border:1px solid var(--gold);border-radius:22px;padding:9px 16px;cursor:pointer;font-size:13px;
+    letter-spacing:.04em;box-shadow:0 4px 18px rgba(0,0,0,.5);display:none}
+  #askPanel{position:fixed;right:10px;bottom:120px;z-index:46;width:min(370px,calc(100vw - 20px));
+    background:var(--panel);border:1px solid var(--gold);border-radius:10px;padding:12px;display:none;
+    box-shadow:0 8px 30px rgba(0,0,0,.6)}
+  #askPanel.on{display:block;animation:fade .3s ease}
+  #askLog{max-height:44vh;overflow-y:auto;margin-bottom:8px}
+  #askLog .msg{margin:6px 0;padding:8px 11px;border-radius:8px;font-size:13px;line-height:1.55;white-space:pre-wrap}
+  #askLog .msg.user{background:var(--panel2);border:1px solid var(--line)}
+  #askLog .msg.merlin{background:rgba(201,162,39,.07);border:1px solid var(--line)}
+  #askRow{display:flex;gap:6px}
+  #askRow textarea{flex:1;min-height:40px;max-height:90px;font-size:13px}
+  #askRow .btn{margin:0;padding:8px 14px}
   footer{text-align:center;color:#565d78;font-size:11px;letter-spacing:.08em;margin:30px 0 8px;line-height:1.8}
 </style>
 
@@ -184,6 +200,11 @@
     <div id="skyInfo"></div>
     <h3>The challenges arising now</h3>
     <div id="skyChallenges"></div>
+  </div>
+  <div class="card">
+    <h2>The Rays you are in — Master DK's map</h2>
+    <p class="lede">From <i>Esoteric Astrology</i> (Master DK / Bailey): each sign transmits a ray through its ruler — the <b>orthodox ruler</b> for the ordinary man (Tabulation IV), the <b>esoteric ruler</b> for the disciple (Tabulation V). Your placements tell which rays your life is strung upon; today's transits tell which rays are being pressed now. The esoteric ruler of your rising or Sun sign points to the <b>soul's line</b> — and its Chohan.</p>
+    <div id="rayMap"></div>
   </div>
 </div>
 
@@ -302,6 +323,18 @@
     <p id="cerText"></p>
     <button class="btn" onclick="document.getElementById('ceremony').classList.remove('on')">Continue the quest</button>
   </div>
+</div>
+
+<!-- ==================== ASK MERLIN — on every screen ==================== -->
+<div id="askFab" onclick="app.toggleAsk()">✶ Ask Merlin</div>
+<div id="askPanel" role="dialog" aria-label="Ask Merlin">
+  <div class="kicker" style="text-align:left;margin-bottom:6px">Merlin · here on this page</div>
+  <div id="askLog"></div>
+  <div id="askRow">
+    <textarea id="askInput" placeholder="Ask about this page — the rays, the dream, the seat…"></textarea>
+    <button class="btn" onclick="app.askSend()">Ask</button>
+  </div>
+  <p class="small" style="margin-top:6px">One thread with the Oracle — the full conversation lives on the Oracle page.</p>
 </div>
 
 <!-- ==================== NAV ==================== -->
@@ -476,6 +509,20 @@ const AFFIRM=[
  N=>[`${N}, I bless with what I hold,`,"the gift returns a hundredfold,",`${N}, the outer shows`,"the inner grace that overflows."],
 ];
 
+/* MASTER DK (Bailey, Esoteric Astrology) — the ray map.
+   Tabulation IV (orthodox rulers, "in connection with ordinary man"): sign -> [ruler, ray].
+   Tabulation V (esoteric rulers, the disciple): sign -> esoteric ruler.
+   Planet -> ray; ray -> quality; ray -> Chohan (the corpus mapping). */
+const DK_ORTHO={Aries:["Mars",6],Taurus:["Venus",5],Gemini:["Mercury",4],Cancer:["Moon",4],Leo:["Sun",2],
+ Virgo:["Mercury",4],Libra:["Venus",5],Scorpio:["Mars",6],Sagittarius:["Jupiter",2],Capricorn:["Saturn",3],
+ Aquarius:["Uranus",7],Pisces:["Jupiter",2]};
+const DK_ESO={Aries:"Mercury",Taurus:"Vulcan",Gemini:"Venus",Cancer:"Neptune",Leo:"Sun",Virgo:"Moon",
+ Libra:"Uranus",Scorpio:"Mars",Sagittarius:"Earth",Capricorn:"Saturn",Aquarius:"Jupiter",Pisces:"Pluto"};
+const DK_PLANET_RAY={Vulcan:1,Pluto:1,Jupiter:2,Sun:2,Earth:3,Saturn:3,Mercury:4,Moon:4,Venus:5,Mars:6,Neptune:6,Uranus:7};
+const DK_RAY={1:"Power / Will",2:"Love-Wisdom",3:"Active Intelligence",4:"Harmony through Conflict",
+ 5:"Concrete Science",6:"Devotion / Idealism",7:"Ceremonial Order / Magic"};
+const CHOHAN={1:"Master MORE",2:"Master Lanto",3:"Paul the Venetian",4:"Serapis Bey",5:"Hilarion",6:"Lady Master Nada",7:"Saint Germain"};
+
 /* THE 15 RAYS — Mother Mary, "The Psychological Clock" (Jan 5 2025): 12 lines = rays 1-12,
    13th=Creative Flow (centre), 14th=Sharing Your Presence (circle), 15th=the unconditional background.
    Chohans of rays 1-7 per the corpus; seat = the Chohan's station on the Round Table (-1 = none). */
@@ -631,6 +678,10 @@ const app={
   document.getElementById(id).classList.add("on");
   document.querySelectorAll(".nav button").forEach(b=>b.classList.toggle("on",b.dataset.s===id));
   window.scrollTo(0,0);
+  this._screen=id;
+  const fab=document.getElementById("askFab");
+  if(fab)fab.style.display=(id==="oracle"||id==="welcome")?"none":"block";
+  if(id==="oracle"){const p=document.getElementById("askPanel");if(p)p.classList.remove("on");}
   if(id==="chart")this.renderSky();
   if(id==="oracle"){this.setAIStatus();this.renderChat();}
   if(id==="dreams")this.renderDiary();
@@ -809,6 +860,34 @@ In the name of the Divine Mother, I fully accept that the power of these calls i
     ?`This dream carries a gift, not a burden: ${p.giftText}. Do not analyze it away — receive it. Speak the invocation to anchor it, and let it flow to others; a gift kept flowing multiplies.`
     :`The dream mirrors the ${s.sign} seat — ${s.exploit}. ${s.exploitNote} The self it shows is ${s.self}. See it, do not fight it, and let it die into ${s.quality.split("—")[0].trim()}. (Built-in reading — open the living app for Merlin's full voice.)`;}
   p.interp=reply;this.save();el.textContent=reply;this.renderDiary();},
+
+ /* ---------- MASTER DK's RAY MAP (Esoteric Astrology, Tabulations IV & V) ---------- */
+ rayRow(who,sign){const o=DK_ORTHO[sign],eso=DK_ESO[sign],esoRay=DK_PLANET_RAY[eso];
+  return {who,sign,ortho:o[0],orthoRay:o[1],eso,esoRay};},
+ renderRayMap(natal,trans){const el=document.getElementById("rayMap");if(!el)return;
+  const rows=[];const tally={};
+  const add=(who,signIdx,isNatal)=>{const sign=STATIONS[signIdx].sign;const r=this.rayRow(who,sign);
+   r.natal=isNatal;rows.push(r);if(isNatal)tally[r.esoRay]=(tally[r.esoRay]||0)+1;};
+  if(natal&&natal.length)natal.forEach(p=>add(p.name,p.sign,true));
+  else if(this.state.natal>=0)add("Sun",this.state.natal,true);
+  const pressed={};
+  if(trans&&trans.length)trans.forEach(p=>{const sign=STATIONS[p.sign].sign;const r=this.rayRow(p.name,sign);
+   pressed[r.esoRay]=(pressed[r.esoRay]||[]).concat(p.name);});
+  else {const r=this.rayRow("Sun",STATIONS[this.transitIdx()].sign);pressed[r.esoRay]=["Sun"];}
+  if(!rows.length){el.innerHTML="<p class='small'>Add your birth date to see your ray map.</p>";return;}
+  const soul=rows[0]; /* first placement = Ascendant if computed, else Sun — the soul-purpose point */
+  const domRay=+Object.entries(tally).sort((a,b)=>b[1]-a[1])[0][0];
+  let h=`<div class="signpost" style="border-left-color:var(--goldb)"><b>The soul's line — ${soul.who} in ${soul.sign}</b> → esoteric ruler <b>${soul.eso}</b> → <b>Ray ${soul.esoRay}: ${DK_RAY[soul.esoRay]}</b>, under <b>${CHOHAN[soul.esoRay]}</b>.<br>
+   <span class="small">DK: the rising sign (or the Sun, when the hour is unknown) carries the soul's purpose; its esoteric ruler names the ray your deeper life works upon.</span></div>`;
+  h+=`<div class="signpost"><b>Your strongest ray thread: Ray ${domRay} — ${DK_RAY[domRay]}</b> (${tally[domRay]} placement${tally[domRay]>1?"s":""}), under ${CHOHAN[domRay]}.</div>`;
+  h+=`<div class="tablewrap"><table><tr><th></th><th>Sign</th><th>Orthodox ruler → ray</th><th>Esoteric ruler → ray</th><th>Chohan</th></tr>`
+   +rows.map(r=>`<tr><td><b>${r.who}</b></td><td>${r.sign}</td><td>${r.ortho} → R${r.orthoRay} ${DK_RAY[r.orthoRay]}</td><td><b>${r.eso} → R${r.esoRay} ${DK_RAY[r.esoRay]}</b></td><td>${CHOHAN[r.esoRay]}</td></tr>`).join("")
+   +`</table></div>`;
+  h+=`<h3>The rays being pressed now (today's transits)</h3>`
+   +Object.entries(pressed).sort((a,b)=>b[1].length-a[1].length).map(([ray,who])=>
+    `<div class="signpost" ${who.length>2?'style="border-left-color:var(--blue)"':''}><b>Ray ${ray}: ${DK_RAY[ray]}</b> — pressed by ${who.join(", ")} · under ${CHOHAN[ray]}${+ray===this.planetRay()?` · <b>this is also the planetary ray of the year</b>`:""}${+ray===this.personalRay()?` · <b>and your personal clock line</b>`:""}<br>
+     <span class="small">${who.length>2?"A strong press — several hands on one ray. ":""}Call to ${CHOHAN[ray]}; the seat decrees on the Wheel carry the ray into form.</span></div>`).join("");
+  el.innerHTML=h;},
 
  /* ---------- THE COSMIC CLOCK (Mother Mary, Psychological Clock, Jan 5 2025) ---------- */
  planetRay(){const y=new Date().getFullYear();return ((y-2025)%12+12)%12+1;}, /* 2025=Ray1, 2026=Ray2 */
@@ -1035,6 +1114,48 @@ The sign that the working is answered usually comes in the night: a dream that r
   const s=STATIONS[sti];
   return `I hear you. Nothing is happening to you — the outer is a mirror of the inner. What you bring is the ${s.sign} seat lighting: ${why}. The knight riding there is ${s.self}.\n\nThis is ${s.exploit}: ${s.exploitNote}\n\nThe way is not to fight it but to see it and let it die — and the quality of ${s.quality.split("—")[0].trim()} takes its place. Give this seat's nine-verse invocation (open the ${s.sign} seat on the Wheel), and watch your dreams for its symbols — ${DREAM_LEX.filter(d=>d.st===sti).slice(0,3).map(d=>d.sym).join(", ")} — that is the return current, the masters answering.\n\n(This is my built-in counsel. For a flowing, living conversation, open the app on your computer or your deployed link — there I speak with the living source.)`;},
 
+ /* ---------- ask-Merlin on every page (shared thread + page context) ---------- */
+ toggleAsk(){const p=document.getElementById("askPanel");p.classList.toggle("on");
+  if(p.classList.contains("on")){this.renderAsk();document.getElementById("askInput").focus();}},
+ screenContext(){const sc=this._screen||"home";
+  try{
+   if(sc==="clock"){const pr=this.personalRay(),wr=this.planetRay();
+    return `The pilgrim is on the COSMIC CLOCK page. Planetary ray of the year: Ray ${wr} (${RAYS[wr-1].name}). ${pr>0?`Their personal clock line: Ray ${pr} (${RAYS[pr-1].name}), age ${this.ageYears()}, ${this.revolutions()} revolutions.`:""} The page also maps the 144 levels (48-96 = the seven rays under the Chohans; 96 = the turning; 97-144 = Christhood).`;}
+   if(sc==="chart"){const sign=this.state.natal>=0?STATIONS[this.state.natal].sign:null;
+    return `The pilgrim is on THE SKY page (natal chart, transits, and Master DK's ray map from Esoteric Astrology: orthodox Tabulation IV and esoteric Tabulation V rulers).${sign?` Natal Sun sign ${sign}: orthodox ruler ${DK_ORTHO[sign][0]} -> Ray ${DK_ORTHO[sign][1]}; esoteric ruler ${DK_ESO[sign]} -> Ray ${DK_PLANET_RAY[DK_ESO[sign]]} under ${CHOHAN[DK_PLANET_RAY[DK_ESO[sign]]]}.`:""}`;}
+   if(sc==="dreams"){const last=(this.state.posts||[]).slice(-2);
+    return `The pilgrim is on the DREAM GATE page. ${last.length?"Recent dreams: "+last.map(p=>`[${p.date}, seat ${STATIONS[p.st].sign}, ${p.polarity==="gift"?"a gift":"a self to surrender"}] "${(p.text||"").slice(0,160)}"`).join(" · "):"No dreams recorded yet."}`;}
+   if(sc==="vigil"){const act=(this.state.workings||[]).filter(w=>w.status==="active").slice(-2);
+    return `The pilgrim is on THE VIGIL page (personal workings: issue -> masters' answer -> daily decree -> the dream). ${act.length?"Active workings: "+act.map(w=>`[${STATIONS[w.st].sign}] "${w.text.slice(0,140)}" (decree given ${w.saidDates.length} days)`).join(" · "):"No active workings."}`;}
+   if(sc==="today")return "The pilgrim is on TODAY'S QUEST page (the day's transit seat, its test and micro-practice).";
+   if(sc==="me")return "The pilgrim is on MY QUEST page (their seat card and journey of the twelve surrenders).";
+   return "The pilgrim is on THE WHEEL page (the Round Table of twelve seats).";
+  }catch(e){return "";}},
+ renderAsk(){const log=document.getElementById("askLog");if(!log)return;
+  const chat=(this.state.chat||[]).slice(-8);
+  log.innerHTML=chat.length?chat.map(m=>`<div class="msg ${m.role==="user"?"user":"merlin"}">${this.esc(m.text)}</div>`).join("")
+   :`<div class="msg merlin">Ask me about what this page is showing you — a ray, a dream, a seat, a cycle — and I will read it with you.</div>`;
+  log.scrollTop=log.scrollHeight;},
+ async askSend(){const inp=document.getElementById("askInput");const q=(inp.value||"").trim();
+  if(q.length<2)return;
+  this.state.chat=this.state.chat||[];this.state.chat.push({role:"user",text:q});
+  inp.value="";this.save();this.renderAsk();
+  const log=document.getElementById("askLog");
+  const think=document.createElement("div");think.className="msg merlin";think.textContent="Merlin is considering…";
+  log.appendChild(think);log.scrollTop=log.scrollHeight;
+  let reply=null,lane="built-in";
+  if(location.protocol.startsWith("http")){
+   try{const r=await fetch("/api/oracle",{method:"POST",headers:{"content-type":"application/json"},
+     body:JSON.stringify({messages:this.state.chat.map(m=>({role:m.role,text:m.text})),
+       context:this.screenContext(),
+       name:this.state.name,dob:this.state.dob,time:this.state.time,place:this.state.place,
+       natal:this.state.natal,transit:this.transitIdx(),figure:this.state.figure})});
+    if(r.ok){const d=await r.json();if(d.lane&&d.lane!=="none"){reply=d.counsel;lane=d.lane;}}
+   }catch(e){}}
+  if(!reply)reply=this.localCounselText(q);
+  think.remove();
+  this.state.chat.push({role:"merlin",text:reply,lane});this.save();this.renderAsk();},
+
  /* ---------- the consultation scroll (export to any AI) ---------- */
  completedDecree(i,aspect){
   const base=this.invocation(i);
@@ -1216,7 +1337,7 @@ THE COUNSEL ASKED
    g+=`<g transform="translate(${gx-9},${gy-9}) scale(0.18)">${glyphPath(i,col,7)}</g>`;}
   if(!window.Astronomy){wheel.innerHTML=g;
    document.getElementById("skyInfo").innerHTML="<p class='lede'>The live planetary chart runs in the full app (open it locally or on your deployed link). On this shared preview only the seat wheel shows.</p>";
-   document.getElementById("skyChallenges").innerHTML="";return;}
+   document.getElementById("skyChallenges").innerHTML="";this.renderRayMap(null,null);return;}
   const bd=this.birthDate(),now=new Date();
   const natal=this.planetLons(bd,vedic),trans=this.planetLons(now,vedic);
   const dot=(arr,rr,color)=>{if(!arr)return;const seen={};
@@ -1240,6 +1361,7 @@ THE COUNSEL ASKED
    return `<div class="signpost"><b>${sgHTML(+si,"#c9a227",16)} ${s.sign} — ${s.exploit}</b> · lit by ${bucket[si].join(", ")}<br>
    <span class="small">The test: ${s.self}. Free the quality of ${s.quality.split("—")[0].trim()}. ${(+si===this.state.natal)?"<b>This is your natal seat — it presses you by name.</b>":""}</span><br>
    <button class="btn ghost" style="margin:8px 0 0;padding:6px 14px" onclick="app.show('home');app.openStation(${si})">Open this seat's invocation</button></div>`;}).join(""):"<p class='lede'>The transiting planets are spread across many seats today — no single test dominates. A day to walk lightly.</p>";
+  this.renderRayMap(natal,trans);
  },
 
  /* ---------- journey table ---------- */
