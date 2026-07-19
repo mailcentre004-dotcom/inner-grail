@@ -197,7 +197,15 @@
   </div>
   <div class="card">
     <h2>The Dream Diary</h2>
-    <p class="lede">Every dream you bring, kept as the sealed letters of the masters' reply. The return current of the quest.</p>
+    <p class="lede">Every dream kept as a sealed letter of the masters' reply. Dreams come in sequence — the diary shows the threads that recur.</p>
+    <div class="row" style="align-items:center">
+      <div style="flex:1"><input type="text" id="dreamSearch" placeholder="Search your dreams (a word, a symbol, a sign)…" oninput="app.renderDiary()"></div>
+      <div style="flex:0 0 auto">
+        <button class="btn ghost" style="margin:0" onclick="app.exportDreams()">Export</button>
+        <label class="btn ghost" style="margin:0;cursor:pointer">Import<input type="file" accept="application/json" style="display:none" onchange="app.importDreams(event)"></label>
+      </div>
+    </div>
+    <div id="dreamThreads"></div>
     <div id="dreamDiary"></div>
   </div>
 </div>
@@ -396,6 +404,33 @@ const ASPECT_LEX=[
  {keys:["tired","exhaust","burnout","overwhelmed","too much","pressure","stress"],st:9,why:"the weight is the investigator running a trial that was never yours to run"},
 ];
 
+/* GIFTS — dream signals that a power/grace is being GIVEN (to be affirmed, not surrendered) */
+const GIFT_LEX=[
+ {keys:["flying","flew","wings","soaring","rising up","floating","levitat"],gift:"the gift of rising above the field of the selves — freedom of spirit"},
+ {keys:["light","radiant","glowing","shining","sun ","golden light","luminous","aura"],gift:"the inner light awakening — the Presence shining through you"},
+ {keys:["healing","healed","whole again","cured","restored"],gift:"the gift of healing flowing through you"},
+ {keys:["received a cup","drank","chalice","grail","holy cup"],gift:"the Grail offered — the Christ consciousness rising in you"},
+ {keys:["given a gift","received","present","offered me","handed me","blessing"],gift:"a gift of the Spirit conferred by the masters"},
+ {keys:["crown","crowned","throne","king","queen","sovereign"],gift:"sovereignty — the King rising within"},
+ {keys:["teacher","master","guide gave","wise","sage","angel","being of light"],gift:"an initiation — a master conferring a grace"},
+ {keys:["sword given","received a sword","excalibur","glowing blade"],gift:"the gift of discrimination — Excalibur drawn"},
+ {keys:["baby","newborn","birth","pregnant","child born","seed"],gift:"something new being born in you"},
+ {keys:["voice said","heard a voice","message","word came","told me","whisper"],gift:"inner guidance opening — the still voice"},
+ {keys:["suddenly could","was able to","power","strength","mastery","i knew how"],gift:"a power awakening in you"},
+ {keys:["garden","flowers","blossom","fruit","harvest","tree of life"],gift:"fruitfulness — the life bearing its increase"},
+ {keys:["reunion","embrace","love","married","wedding","home at last"],gift:"union — the soul rejoining its source"},
+ {keys:["mountain top","summit","high place","peak","above the clouds"],gift:"a height of consciousness attained"},
+ {keys:["clear water","calm sea","still lake","clear sky","dawn","sunrise"],gift:"clarity — the waters stilled, the veil thinning"},
+];
+/* the affirmation-of-a-gift arc (parallel to QUEST, but ACCEPTING not consuming) */
+const AFFIRM=[
+ N=>[`${N}, I open, I receive,`,"no doubt remains, I now believe,",`${N}, the gift is mine,`,"I take it from your hand divine."],
+ N=>[`${N}, I anchor deep the grace,`,"I hold it firm in time and space,",`${N}, it will not fade,`,"the gift you gave shall not be stayed."],
+ N=>[`${N}, I am the gift made real,`,"the power in my heart I feel,",`${N}, I use it true,`,"a channel for the light of you."],
+ N=>[`${N}, it grows as I give thanks,`,"it multiplies, it breaks all banks,",`${N}, the flow is free,`,"it pours through all the world and me."],
+ N=>[`${N}, I bless with what I hold,`,"the gift returns a hundredfold,",`${N}, the outer shows`,"the inner grace that overflows."],
+];
+
 const MICRO=[ /* one micro-practice per station for Today's Quest */
  "Once today, when you feel the push to force an outcome — pause, and let the outcome be taken by a higher hand.",
  "Give one thing away today — time, praise, or a possession — and watch what the open hand receives.",
@@ -589,33 +624,128 @@ In the name of the Divine Mother, I fully accept that the power of these calls i
   this.renderAll();},
 
  /* ---------- dreams ---------- */
+ affirmationDecree(sti,giftText){const s=STATIONS[sti],N=SHORT[sti],R=REFRAIN.join("\n");
+  const v1=[`${N}, the gift is given now,`,"I open wide, I take the vow,",`${N}, I claim, I own,`,"the grace the masters here have shown."];
+  const v2=[`${N}, I name the grace you send,`,"a light on which I now depend,",`${N}, I hold it fast,`,"the gift has come to me at last."];
+  const verses=[v1,v2,...AFFIRM.map(f=>f(N)),BALANCE(N),SEALV(DEAR[sti],SEAL[sti])];
+  const body=verses.map((v,k)=>`${k+1}.\n${v.join("\n")}\n\n${R}`).join("\n\n");
+  return `An Invocation to Receive the Gift — the ${s.sign} Seat
+(nine verses; the gift the dream revealed: ${giftText})
+
+In the name I AM THAT I AM, Jesus Christ, I call to my I AM Presence to flow through the I Will Be Presence that I AM and give these decrees with full power. I call to beloved ${s.master} to seal and anchor within me ${giftText}, that it may grow, be used in service, and bless all life, including...
+
+[Make personal calls]
+
+${body}
+
+I accept this gift as already given. I AM the open door for it. My I AM Presence works hitherto, and I take dominion over this Ma-ter light to outpicture the perfect vision of Christ, now and forever.
+
+Sealing:
+In the name of the Divine Mother, I fully accept that the power of these calls is used to set free the Ma-ter light, so it can outpicture the perfect vision of Christ for my own life, for all people and for the planet. In the name I AM THAT I AM, it is done! Amen.`;},
+
  readDream(){const orig=(document.getElementById("dreamTxt").value||"").trim();
   const txt=orig.toLowerCase();
   const o=document.getElementById("dreamOut");
   if(txt.length<8){o.innerHTML="<p class='lede' style='margin-top:12px'>Write the dream first — even a fragment carries a signpost.</p>";return;}
-  const hits=DREAM_LEX.filter(e=>e.keys.some(k=>txt.includes(k)));
-  if(!hits.length){o.innerHTML=`<h3>The gate is quiet</h3><p class="lede">No mapped symbol surfaced. Watch the coming nights for the sword, the water, the door, the cup — the recurring image is the signpost.</p>`;return;}
-  const counts={};hits.forEach(h=>counts[h.st]=(counts[h.st]||0)+1);
-  const st=Number(Object.entries(counts).sort((a,b)=>b[1]-a[1])[0][0]);
+  const shadow=DREAM_LEX.filter(e=>e.keys.some(k=>txt.includes(k)));
+  const gifts=GIFT_LEX.filter(e=>e.keys.some(k=>txt.includes(k)));
+  const polarity=gifts.length&&gifts.length>=shadow.length?"gift":(shadow.length?"shadow":(gifts.length?"gift":"none"));
+  let st;
+  if(shadow.length){const c={};shadow.forEach(h=>c[h.st]=(c[h.st]||0)+1);st=+Object.entries(c).sort((a,b)=>b[1]-a[1])[0][0];}
+  else st=this.state.natal>=0?this.state.natal:this.transitIdx();
   const s=STATIONS[st];
-  this.state.posts.push({st,syms:hits.map(h=>h.sym),date:this.todayKey(),text:orig.slice(0,500)});
-  document.getElementById("dreamTxt").value="";this.save();
-  o.innerHTML=`<h3>The symbols that surfaced</h3>
-   <p>${hits.map(h=>`<span class="sym">${h.sym}</span>`).join("")}</p>
-   ${hits.map(h=>`<p class="small">• <b>${h.sym}</b> — ${h.note}</p>`).join("")}
-   <div class="signpost"><b>The signpost points to ${s.glyph} ${s.sign} — ${s.exploit}.</b><br>
-   ${s.exploitNote}<br><br><b>The self it shows you:</b> ${s.self}.<br>
-   <b>A decree to carry today:</b> <i>${s.v1.join(" ")}</i><br><br>
-   A signpost has been set on your wheel at ${s.sign}. The full nine-verse decree waits at that seat.</div>`;
+  const syms=shadow.map(h=>h.sym);
+  const post={id:Date.now(),date:this.todayKey(),text:orig.slice(0,800),st,syms,
+   giftText:gifts.length?gifts[0].gift:null,polarity,interp:null};
+  /* sequential connections: prior dreams sharing this seat or a symbol */
+  const prior=this.state.posts.filter(p=>p.st===st||(p.syms&&syms.some(x=>p.syms.includes(x))));
+  this.state.posts.push(post);document.getElementById("dreamTxt").value="";this.save();
+  const conn=prior.length?`<div class="signpost" style="border-left-color:var(--blue)"><b>This continues a thread.</b> You have dreamed toward the ${s.sign} seat ${prior.length} time${prior.length>1?"s":""} before (${prior.slice(-3).map(p=>p.date).join(", ")}). Dreams come in sequence — the masters are pressing this one point until it is seen.</div>`:"";
+  let block;
+  if(polarity==="gift"){
+   block=`<div class="signpost" style="border-left-color:var(--goldb)"><b>A GIFT is being given.</b> ${gifts.map(g=>g.gift).join("; ")}.<br><br>
+    This is not a self to surrender but a grace to <b>receive and anchor</b>. Affirm it, claim it, and let it flow to others.<br>
+    <button class="btn" style="margin:10px 6px 0 0" onclick="app.showDecreeFor(${post.id})">The invocation to receive this gift</button>
+    <button class="btn ghost" style="margin:10px 0 0" onclick="app.interpretDream(${post.id})">Ask Merlin to interpret</button></div>`;
+  } else if(polarity==="shadow"){
+   block=`<div class="signpost"><b>${sgHTML(st,'#c9a227',15)} ${s.sign} — ${s.exploit}.</b> ${s.exploitNote}<br>
+    <b>The self it shows:</b> ${s.self}. A self to be <b>seen and surrendered</b>.<br>
+    <button class="btn" style="margin:10px 6px 0 0" onclick="app.showDecreeFor(${post.id})">The nine-verse decree to surrender it</button>
+    <button class="btn ghost" style="margin:10px 0 0" onclick="app.interpretDream(${post.id})">Ask Merlin to interpret</button></div>`;
+  } else {
+   block=`<div class="signpost"><b>The dream is kept.</b> No mapped symbol surfaced, but every dream is a letter — let Merlin read it.<br>
+    <button class="btn" style="margin:10px 0 0" onclick="app.interpretDream(${post.id})">Ask Merlin to interpret</button></div>`;
+  }
+  o.innerHTML=`<h3>The dream is received</h3>
+   ${shadow.length?`<p>Shadow symbols: ${shadow.map(h=>`<span class="sym">${h.sym}</span>`).join("")}</p>`:""}
+   ${gifts.length?`<p>Gift symbols: ${gifts.map(g=>`<span class="sym" style="border-color:#5a4c1e;color:var(--goldb);background:rgba(201,162,39,.10)">✦</span>`).join("")} <span class="small">${gifts.map(g=>g.gift).join("; ")}</span></p>`:""}
+   ${conn}${block}
+   <div class="invo" id="dreamDecreeOut" style="display:none"></div>`;
   this.renderAll();},
 
+ showDecreeFor(id){const p=this.state.posts.find(x=>x.id===id);if(!p)return;
+  const el=document.getElementById("dreamDecreeOut");
+  el.textContent=p.polarity==="gift"?this.affirmationDecree(p.st,p.giftText||"this grace"):this.completedDecree(p.st,p.text||"");
+  el.style.display="block";el.scrollIntoView({behavior:"smooth"});},
+
+ async interpretDream(id){const p=this.state.posts.find(x=>x.id===id);if(!p)return;
+  const el=document.getElementById("dreamDecreeOut");el.style.display="block";
+  el.textContent="Merlin is reading the dream…";
+  const q=`Interpret this dream as Merlin, in the language of the quest. Say what it mirrors, which seat/self or which gift it points to, whether it continues a thread, and end by suggesting either an invocation to surrender a self OR to receive a gift. Dream: "${p.text}"`;
+  let reply=null;
+  if(location.protocol.startsWith("http")){try{
+   const r=await fetch("/api/oracle",{method:"POST",headers:{"content-type":"application/json"},
+     body:JSON.stringify({messages:[{role:"user",text:q}],name:this.state.name,dob:this.state.dob,
+       time:this.state.time,place:this.state.place,natal:this.state.natal,transit:this.transitIdx()})});
+   if(r.ok){const d=await r.json();if(d.lane&&d.lane!=="none")reply=d.counsel;}
+  }catch(e){}}
+  if(!reply){const s=STATIONS[p.st];
+   reply=p.polarity==="gift"
+    ?`This dream carries a gift, not a burden: ${p.giftText}. Do not analyze it away — receive it. Speak the invocation to anchor it, and let it flow to others; a gift kept flowing multiplies.`
+    :`The dream mirrors the ${s.sign} seat — ${s.exploit}. ${s.exploitNote} The self it shows is ${s.self}. See it, do not fight it, and let it die into ${s.quality.split("—")[0].trim()}. (Built-in reading — open the living app for Merlin's full voice.)`;}
+  p.interp=reply;this.save();el.textContent=reply;this.renderDiary();},
+
+ renderThreads(){const el=document.getElementById("dreamThreads");if(!el)return;
+  const posts=this.state.posts||[];if(posts.length<2){el.innerHTML="";return;}
+  const seat={},sym={};posts.forEach(p=>{seat[p.st]=(seat[p.st]||0)+1;(p.syms||[]).forEach(s=>sym[s]=(sym[s]||0)+1);});
+  const topSeats=Object.entries(seat).filter(e=>e[1]>1).sort((a,b)=>b[1]-a[1]).slice(0,3);
+  const topSyms=Object.entries(sym).filter(e=>e[1]>1).sort((a,b)=>b[1]-a[1]).slice(0,5);
+  if(!topSeats.length&&!topSyms.length){el.innerHTML="";return;}
+  el.innerHTML=`<div class="signpost" style="border-left-color:var(--blue)"><b>Your recurring threads</b> — dreams come in sequence; what returns is what is being worked.<br>
+   ${topSeats.length?"<span class='small'>Seats most pressed: "+topSeats.map(([i,n])=>`${STATIONS[+i].sign} (${n})`).join(", ")+"</span><br>":""}
+   ${topSyms.length?"<span class='small'>Symbols recurring: "+topSyms.map(([s,n])=>`${s} (${n})`).join(", ")+"</span>":""}</div>`;},
+
  renderDiary(){const el=document.getElementById("dreamDiary");if(!el)return;
-  const posts=[...this.state.posts].reverse();
-  if(!posts.length){el.innerHTML="<p class='small'>No dreams recorded yet. When one comes, bring it to the gate above — it will be kept here.</p>";return;}
-  el.innerHTML=posts.map(p=>{const s=STATIONS[p.st];
-   return `<div class="signpost"><b>${p.date}</b> · ${sgHTML(p.st,"#c9a227",15)} <b>${s.sign} — ${s.exploit}</b><br>
-   ${p.text?`<span style="color:var(--parch)">“${p.text}”</span><br>`:""}
-   <span class="small">Symbols: ${p.syms.join(", ")}. The self it showed: ${s.self.split("—")[0].trim()}.</span></div>`;}).join("");},
+  this.renderThreads();
+  const q=((document.getElementById("dreamSearch")||{}).value||"").toLowerCase().trim();
+  let posts=[...(this.state.posts||[])].reverse();
+  if(q)posts=posts.filter(p=>((p.text||"")+" "+(p.syms||[]).join(" ")+" "+STATIONS[p.st].sign).toLowerCase().includes(q));
+  if(!posts.length){el.innerHTML=`<p class='small'>${q?"No dreams match “"+this.esc(q)+"”.":"No dreams recorded yet. When one comes, bring it to the gate above — it will be kept here."}</p>`;return;}
+  el.innerHTML=posts.map(p=>{const s=STATIONS[p.st];const gift=p.polarity==="gift";
+   return `<div class="signpost" ${gift?'style="border-left-color:var(--goldb)"':''}>
+    <b>${p.date}</b> · ${sgHTML(p.st,gift?"#eccd6f":"#c9a227",15)} <b>${s.sign}</b> · <span style="color:${gift?'var(--goldb)':'var(--rose)'}">${gift?"a gift to receive":"a self to surrender"}</span><br>
+    ${p.text?`<span style="color:var(--parch)">“${this.esc(p.text)}”</span><br>`:""}
+    <span class="small">${p.syms&&p.syms.length?"Symbols: "+p.syms.join(", ")+". ":""}${gift&&p.giftText?p.giftText+".":"The self: "+s.self.split("—")[0].trim()+"."}</span>
+    ${p.interp?`<br><span class="small" style="color:var(--parch)">— Merlin: ${this.esc(p.interp).slice(0,600)}</span>`:""}
+    <br><button class="btn ghost" style="margin:8px 6px 0 0;padding:5px 12px" onclick="app.diaryDecree(${p.id})">${gift?"Receive-gift invocation":"Surrender decree"}</button>
+    ${p.interp?"":`<button class="btn ghost" style="margin:8px 0 0;padding:5px 12px" onclick="app.diaryInterpret(${p.id})">Ask Merlin</button>`}</div>`;}).join("");},
+
+ diaryDecree(id){const p=this.state.posts.find(x=>x.id===id);if(!p)return;
+  const t=p.polarity==="gift"?this.affirmationDecree(p.st,p.giftText||"this grace"):this.completedDecree(p.st,p.text||"");
+  this.copyText(t,"");alert(t);},
+ async diaryInterpret(id){await this.interpretDream(id);this.renderDiary();},
+
+ exportDreams(){const data=JSON.stringify({app:"the-inner-grail",exported:this.todayKey(),
+   name:this.state.name,dob:this.state.dob,dreams:this.state.posts},null,1);
+  if(window.claude&&window.claude.downloads){window.claude.downloads.save({filename:"inner-grail-dreams.json",data});}
+  else{const b=new Blob([data],{type:"application/json"});const u=URL.createObjectURL(b);
+   const a=document.createElement("a");a.href=u;a.download="inner-grail-dreams.json";a.click();URL.revokeObjectURL(u);}},
+ importDreams(ev){const f=ev.target.files&&ev.target.files[0];if(!f)return;const rd=new FileReader();
+  rd.onload=()=>{try{const d=JSON.parse(rd.result);const inc=(d.dreams||d.posts||[]);
+   const have=new Set(this.state.posts.map(p=>p.id));
+   inc.forEach(p=>{if(!have.has(p.id))this.state.posts.push(p);});
+   this.save();this.renderDiary();alert("Imported "+inc.length+" dream(s).");}catch(e){alert("Could not read that file.");}};
+  rd.readAsText(f);},
 
  /* ---------- the Merlin chat (interactive, multi-turn) ---------- */
  esc(t){return (t||"").replace(/&/g,"&amp;").replace(/</g,"&lt;");},
