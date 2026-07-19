@@ -48,12 +48,13 @@ module.exports = async (req, res) => {
   const key = process.env.GEMINI_API_KEY || process.env.GOOGLE_API_KEY;
   if (!key) { res.status(200).json({ counsel: "No GEMINI_API_KEY is set on this deployment. Set it in the host's Environment Variables and redeploy.", lane: "none" }); return; }
 
-  const { question = "", name = "pilgrim", dob = "", time = "", place = "", natal = -1, transit = -1, messages = null } = body;
+  const { question = "", name = "pilgrim", dob = "", time = "", place = "", natal = -1, transit = -1, messages = null, figure = "" } = body;
   const ctx = STATIONS.map((s, i) => `Seat ${i} = ${s.sign}: master ${s.master}, quality '${s.quality}', knight-self '${s.self}', exploit '${s.exploit}'.`).join("\n");
   const ns = natal >= 0 && natal < 12 ? STATIONS[natal] : null;
   const ts = transit >= 0 && transit < 12 ? STATIONS[transit] : null;
   const pilgrim = `THE PILGRIM
 Name: ${name}
+Figure: ${figure === "lady" ? "a Lady of the Grail - address her as Lady" : "a Knight of the Round Table - address him as Sir knight"}
 Born: ${dob || "(unknown)"}${time ? " at " + time : ""}${place ? ", " + place : ""}
 Natal seat: ${ns ? ns.sign + " - " + ns.exploit : "(not seated)"}
 Today's transit seat: ${ts ? ts.sign + " - " + ts.exploit : "(unknown)"}`;

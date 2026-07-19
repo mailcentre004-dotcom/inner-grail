@@ -120,7 +120,7 @@
     padding:8px 12px;cursor:pointer;border-radius:6px;display:flex;flex-direction:column;align-items:center;gap:3px}
   .nav button .ic{font-size:17px}
   .nav button.on{color:var(--goldb);background:rgba(201,162,39,.08)}
-  @media (max-width:520px){.nav button{padding:8px 6px;font-size:10px}.nav button .ic{font-size:15px}}
+  @media (max-width:560px){.nav button{padding:8px 4px;font-size:9.5px}.nav button .ic{font-size:14px}.nav{gap:0}}
   footer{text-align:center;color:#565d78;font-size:11px;letter-spacing:.08em;margin:30px 0 8px;line-height:1.8}
 </style>
 
@@ -185,12 +185,33 @@
   </div>
 </div>
 
+<!-- ==================== THE COSMIC CLOCK ==================== -->
+<div class="screen" id="clock">
+  <div style="height:18px"></div>
+  <div class="card">
+    <h2>The Cosmic Clock — the cycles you are riding</h2>
+    <p class="lede">Mother Mary's Psychological Clock (Jan 5, 2025): a clock face of the <b>15 rays</b> — twelve lines on the rim, the <b>13th Ray of Creative Flow</b> at the centre, the <b>14th Ray of Sharing Your Presence</b> as the circle, the <b>15th</b> as the unconditional background all is drawn upon. Your birth is the zero line; each year of life walks one line. The earth walks its own 12-year round, begun at New Year 2025 with the First Ray.</p>
+    <div class="wheelwrap"><svg id="clockWheel" class="wheel" viewBox="0 0 400 400" role="img" aria-label="The Psychological Clock"></svg></div>
+    <div id="clockInfo"></div>
+  </div>
+  <div class="card">
+    <h2>The synergy — one wheel, three readings</h2>
+    <p class="lede">Your <b>natal seat</b> (the Grail), your <b>personal clock line</b> (the year's initiation), and the <b>planetary ray</b> press together. Where two or three point at one seat, that is the test the heavens have set — and the invocation to give.</p>
+    <div id="clockSynergy"></div>
+  </div>
+  <div class="card">
+    <h2>The 144 levels — the map of the whole path</h2>
+    <p class="lede">The masters teach 144 possible levels of consciousness. From the <b>48th to the 96th</b> you climb the initiations of the <b>seven rays</b> under the seven Chohans; at the <b>96th</b> the question turns — <i>will you shift from raising yourself to raising the whole?</i> — and above it the levels of <b>Christhood</b> rise to the 144th.</p>
+    <div id="levelMap"></div>
+  </div>
+</div>
+
 <!-- ==================== THE VIGIL (personal working) ==================== -->
 <div class="screen" id="vigil">
   <div style="height:18px"></div>
   <div class="card">
     <h2>The Vigil — bring an issue to the masters</h2>
-    <p class="lede">Before a knight rode out, he kept the night-watch. Describe the issue, the resistance, the situation you keep meeting — in your own words. It is read in the light of the teachings, the masters answer, and you receive a decree to give <b>daily</b> until the answer comes — often as a dream. When it does, bring the dream to the Dream Gate and it is joined to this working.</p>
+    <p class="lede" id="vigilLede">Before a knight rode out, he kept the night-watch. Describe the issue, the resistance, the situation you keep meeting — in your own words. It is read in the light of the teachings, the masters answer, and you receive a decree to give <b>daily</b> until the answer comes — often as a dream. When it does, bring the dream to the Dream Gate and it is joined to this working.</p>
     <label>The issue — what you are up against</label>
     <textarea id="vigilTxt" placeholder="Every time I try to move forward with my work, something in me resists — I delay, I doubt, I find reasons to wait…"></textarea>
     <button class="btn" onclick="app.newWorking()">Lay it before the Table</button>
@@ -259,6 +280,7 @@
     <p class="lede">Your card of the Table — keep it, share it, let it call others to the quest.</p>
     <canvas id="seatCanvas" width="1080" height="1350"></canvas><br>
     <button class="btn ghost" onclick="app.saveCard()">Keep the card</button>
+    <button class="btn ghost" onclick="app.toggleFigure()">Change my figure (Knight ⇄ Lady)</button>
     <span class="small" id="cardNote"></span>
   </div>
   <div class="card">
@@ -285,6 +307,7 @@
   <button data-s="home"><span class="ic">◉</span>Wheel</button>
   <button data-s="today"><span class="ic">☀</span>Today</button>
   <button data-s="chart"><span class="ic">☉</span>Sky</button>
+  <button data-s="clock"><span class="ic">◷</span>Clock</button>
   <button data-s="vigil"><span class="ic">⚔</span>Vigil</button>
   <button data-s="dreams"><span class="ic">☾</span>Dreams</button>
   <button data-s="oracle"><span class="ic">✶</span>Oracle</button>
@@ -451,6 +474,46 @@ const AFFIRM=[
  N=>[`${N}, I bless with what I hold,`,"the gift returns a hundredfold,",`${N}, the outer shows`,"the inner grace that overflows."],
 ];
 
+/* THE 15 RAYS — Mother Mary, "The Psychological Clock" (Jan 5 2025): 12 lines = rays 1-12,
+   13th=Creative Flow (centre), 14th=Sharing Your Presence (circle), 15th=the unconditional background.
+   Chohans of rays 1-7 per the corpus; seat = the Chohan's station on the Round Table (-1 = none). */
+const RAYS=[
+ {n:1,name:"God Power, God Will, God Creativity",chohan:"Master MORE",seat:0,
+  test:"the will to be and to create — questioning the mental box, daring to think beyond it"},
+ {n:2,name:"Wisdom",chohan:"Master Lanto",seat:2,
+  test:"the balancing wisdom that keeps you tuned to the Christ mind among all far-flung ideas"},
+ {n:3,name:"Love",chohan:"Paul the Venetian",seat:1,
+  test:"love as the giving flow — the open hand, the cup that pours"},
+ {n:4,name:"Purity & Acceleration",chohan:"Serapis Bey",seat:-1,
+  test:"the ascension flame — letting the impure form die so the pure can rise"},
+ {n:5,name:"Truth & Healing",chohan:"Hilarion",seat:5,
+  test:"the emerald sight — seeing the central flaw and bringing it to the healing law"},
+ {n:6,name:"Peace & Service",chohan:"Lady Master Nada",seat:6,
+  test:"peace through right placement of love — ministration and service"},
+ {n:7,name:"Freedom",chohan:"Saint Germain",seat:10,
+  test:"the violet flame — freedom, transmutation, the alchemy of the new"},
+ {n:8,name:"Integration",chohan:null,seat:-1,
+  test:"integrating the seven into one whole — the Eighth Ray of Integration"},
+ {n:9,name:"Equilibrium",chohan:null,seat:-1,test:"the balance that holds all rays in equilibrium"},
+ {n:10,name:"Transparency",chohan:null,seat:-1,test:"becoming transparent — nothing in you distorts the light"},
+ {n:11,name:"Transcendence",chohan:null,seat:-1,test:"self-transcendence — ever becoming MORE"},
+ {n:12,name:"Rebirth",chohan:null,seat:-1,test:"the old self let die, the new self born — one revolution complete"},
+ {n:13,name:"Creative Flow (the centre)",chohan:null,seat:-1,
+  test:"from the centre you may go straight to any line still unresolved — open intuitively, for many after age 36"},
+ {n:14,name:"Sharing Your Presence (the circle)",chohan:null,seat:-1,
+  test:"the circle turns — go wherever you feel moved to share your Presence on a ray"},
+ {n:15,name:"Unconditionality (the background)",chohan:null,seat:-1,
+  test:"the cosmic background all form is drawn upon — the unconditional, flowing into form"},
+];
+/* the 144 levels — 48→96 = the seven rays under the Chohans (Ray 7 from the 90th level; seal at 96) */
+const LEVEL_BANDS=[
+ {from:1,to:47,label:"Below the 48th",who:"the pull of the mass consciousness",note:"raising yourself above the downward pull — the path begins in earnest at 48"},
+ {from:48,to:54,ray:1},{from:55,to:61,ray:2},{from:62,to:68,ray:3},{from:69,to:75,ray:4},
+ {from:76,to:82,ray:5},{from:83,to:89,ray:6},{from:90,to:96,ray:7},
+ {from:96,to:96,label:"The 96th initiation",who:"the turning of the question",note:"will you shift from raising yourself to raising the whole?"},
+ {from:97,to:144,label:"97 – 144 · Christhood",who:"the secret rays · co-creation",note:"the levels of Christhood — no longer your own growth, but the raising of the All; the Grail recovered"},
+];
+
 const MICRO=[ /* one micro-practice per station for Today's Quest */
  "Once today, when you feel the push to force an outcome — pause, and let the outcome be taken by a higher hand.",
  "Give one thing away today — time, praise, or a possession — and watch what the open hand receives.",
@@ -490,7 +553,15 @@ const PLANETS=[["Sun","Su"],["Moon","Mo"],["Mercury","Me"],["Venus","Ve"],["Mars
 /* ============================ APP ============================ */
 const app={
  state:{name:"",dob:"",time:"",place:"",natal:-1,done:Array(12).fill(false),posts:[],
-        questDates:[],onboarded:false,chartMode:"western",chat:[],workings:[]},
+        questDates:[],onboarded:false,chartMode:"western",chat:[],workings:[],figure:"knight"},
+
+ /* the pilgrim's figure — the character they ride the quest as */
+ figName(){return this.state.figure==="lady"?"Lady of the Grail":"Knight of the Round Table";},
+ figAddress(){return this.state.figure==="lady"?"Lady":"Sir";},
+ setFigure(f){this.state.figure=f;this.obStage=2;this.save();this.ob();},
+ toggleFigure(){this.state.figure=this.state.figure==="lady"?"knight":"lady";this.save();
+  this.drawCard();this.renderVigil();const n=document.getElementById("cardNote");
+  if(n)n.textContent=" You now ride as a "+this.figName()+".";},
 
  load(){try{const s=JSON.parse(localStorage.getItem("innerGrail2")||"null");if(s)this.state={...this.state,...s};}catch(e){}},
  save(){localStorage.setItem("innerGrail2",JSON.stringify(this.state));},
@@ -509,7 +580,11 @@ const app={
   const stages=[
    ()=>{el.innerHTML=`<label>Your name</label><input type="text" id="obName" placeholder="your name">
         <button class="btn" onclick="app.obNext()">Tell Merlin</button>`;},
-   ()=>{say.innerHTML=`Well met, <b>${this.state.name}</b>. Every soul is born through one gate of the twelve — the seat whose test runs deepest in this life. Give me the day of your birth, and the Table will reveal yours.`;
+   ()=>{say.innerHTML=`Well met, <b>${this.state.name}</b>. The legend keeps two roads to the one Cup: the <b>Knight</b> who rides out to meet the tests, and the <b>Lady of the Grail</b> — the line of the Lady of the Lake and the Grail Maiden, she who keeps the sword, holds the deep waters, and bears the Cup itself. The quest is one; only the telling changes. Which figure shall the Table know you by?`;
+        el.innerHTML=`<button class="btn" style="display:block;width:100%" onclick="app.setFigure('knight')">⚔ A Knight of the Round Table</button>
+        <button class="btn" style="display:block;width:100%" onclick="app.setFigure('lady')">⚜ A Lady of the Grail</button>
+        <p class="small" style="margin-top:8px">Both walk every seat of the Table — you can change the figure later on My Quest.</p>`;},
+   ()=>{say.innerHTML=`So be it, <b>${this.figAddress()} ${this.state.name}</b>, ${this.figName()}. Every soul is born through one gate of the twelve — the seat whose test runs deepest in this life. Give me the day of your birth, and the Table will reveal yours.`;
         el.innerHTML=`<label>Birth date</label><input type="date" id="obDob">
         <button class="btn" onclick="app.obNext()">Reveal my seat</button>`;},
    ()=>{const s=STATIONS[this.state.natal];
@@ -521,8 +596,8 @@ const app={
   stages[this.obStage]();},
  obNext(){if(this.obStage===0){const n=document.getElementById("obName").value.trim();
    if(!n)return;this.state.name=n;this.obStage=1;}
-  else if(this.obStage===1){const v=document.getElementById("obDob").value;if(!v)return;
-   const[y,m,d]=v.split("-").map(Number);this.state.dob=v;this.state.natal=this.signFor(m,d);this.obStage=2;}
+  else if(this.obStage===2){const v=document.getElementById("obDob").value;if(!v)return;
+   const[y,m,d]=v.split("-").map(Number);this.state.dob=v;this.state.natal=this.signFor(m,d);this.obStage=3;}
   else{this.state.time=(document.getElementById("obTime").value||"").trim();
    this.state.place=(document.getElementById("obPlace").value||"").trim();
    this.state.onboarded=true;this.save();this.enter();return;}
@@ -540,7 +615,7 @@ const app={
   el.style.background="rgba(201,162,39,.10)";el.style.border="1px solid var(--line)";
   el.innerHTML="◌ checking the living Oracle…";
   try{const r=await fetch("/api/oracle",{method:"POST",headers:{"content-type":"application/json"},
-    body:JSON.stringify({question:"ping",name:this.state.name,natal:this.state.natal,transit:this.transitIdx()})});
+    body:JSON.stringify({question:"ping",name:this.state.name,natal:this.state.natal,transit:this.transitIdx(),figure:this.state.figure})});
    const d=await r.json();
    if(d.lane&&d.lane!=="none"){el.style.background="rgba(111,154,114,.14)";el.style.border="1px solid #3f5f41";
     el.innerHTML=`● <b>Living AI Oracle connected</b> — answering through <b>${d.lane}</b>. Ask Merlin anything; the reading is generated live and grounded in the source teachings.`;}
@@ -557,7 +632,8 @@ const app={
   if(id==="chart")this.renderSky();
   if(id==="oracle"){this.setAIStatus();this.renderChat();}
   if(id==="dreams")this.renderDiary();
-  if(id==="vigil")this.renderVigil();},
+  if(id==="vigil")this.renderVigil();
+  if(id==="clock")this.renderClock();},
 
  /* ---------- wheel ---------- */
  wheel(){const svg=document.getElementById("wheel");const cx=200,cy=200,R=156,r=25;let g="";
@@ -723,7 +799,7 @@ In the name of the Divine Mother, I fully accept that the power of these calls i
   if(location.protocol.startsWith("http")){try{
    const r=await fetch("/api/oracle",{method:"POST",headers:{"content-type":"application/json"},
      body:JSON.stringify({messages:[{role:"user",text:q}],name:this.state.name,dob:this.state.dob,
-       time:this.state.time,place:this.state.place,natal:this.state.natal,transit:this.transitIdx()})});
+       time:this.state.time,place:this.state.place,natal:this.state.natal,transit:this.transitIdx(),figure:this.state.figure})});
    if(r.ok){const d=await r.json();if(d.lane&&d.lane!=="none")reply=d.counsel;}
   }catch(e){}}
   if(!reply){const s=STATIONS[p.st];
@@ -731,6 +807,64 @@ In the name of the Divine Mother, I fully accept that the power of these calls i
     ?`This dream carries a gift, not a burden: ${p.giftText}. Do not analyze it away — receive it. Speak the invocation to anchor it, and let it flow to others; a gift kept flowing multiplies.`
     :`The dream mirrors the ${s.sign} seat — ${s.exploit}. ${s.exploitNote} The self it shows is ${s.self}. See it, do not fight it, and let it die into ${s.quality.split("—")[0].trim()}. (Built-in reading — open the living app for Merlin's full voice.)`;}
   p.interp=reply;this.save();el.textContent=reply;this.renderDiary();},
+
+ /* ---------- THE COSMIC CLOCK (Mother Mary, Psychological Clock, Jan 5 2025) ---------- */
+ planetRay(){const y=new Date().getFullYear();return ((y-2025)%12+12)%12+1;}, /* 2025=Ray1, 2026=Ray2 */
+ ageYears(){if(!this.state.dob)return -1;const b=new Date(this.state.dob+"T00:00:00");const t=new Date();
+  let a=t.getFullYear()-b.getFullYear();const m=t.getMonth()-b.getMonth();
+  if(m<0||(m===0&&t.getDate()<b.getDate()))a--;return a;},
+ personalRay(){const a=this.ageYears();return a<0?-1:(a%12)+1;},
+ revolutions(){const a=this.ageYears();return a<0?0:Math.floor(a/12);},
+ rayCallText(r){const ray=RAYS[r-1];
+  return ray.chohan?`Call to <b>${ray.chohan}</b>, Chohan of the ${["First","Second","Third","Fourth","Fifth","Sixth","Seventh"][r-1]} Ray`+(ray.seat>=0?` — his seat's nine-verse decree is on the Wheel (${STATIONS[ray.seat].sign})`:"")+`. Mother Mary's rotation: one day the Chohan, the next the Archangel, the next the Elohim of the ray.`
+   :`A secret ray — beyond the seven that build form. Hold it in stillness; the calls of the seven rays carry you toward it.`;},
+ clockWheel(){const svg=document.getElementById("clockWheel");if(!svg)return;
+  const cx=200,cy=200,R=150;const pr=this.personalRay(),wr=this.planetRay();let g="";
+  g+=`<circle cx="${cx}" cy="${cy}" r="${R+26}" fill="none" stroke="var(--gold)" stroke-width="1.4" opacity="0.55"/>`;
+  g+=`<text x="${cx}" y="${cy-R-32}" text-anchor="middle" style="fill:var(--dim);font-size:9.5px;letter-spacing:1px">14TH RAY — THE CIRCLE · SHARING YOUR PRESENCE</text>`;
+  for(let i=0;i<12;i++){const a=(i*30-90)*Math.PI/180;
+   const x1=cx+40*Math.cos(a),y1=cy+40*Math.sin(a),x2=cx+R*Math.cos(a),y2=cy+R*Math.sin(a);
+   const mine=(pr>=1&&pr<=12&&i===pr-1),world=(i===wr-1);
+   g+=`<line x1="${x1}" y1="${y1}" x2="${x2}" y2="${y2}" stroke="${mine?"var(--goldb)":world?"var(--blue)":"var(--line)"}" stroke-width="${mine||world?2.4:1}"/>`;
+   const lx=cx+(R+13)*Math.cos(a),ly=cy+(R+13)*Math.sin(a);
+   g+=`<text x="${lx}" y="${ly+3}" text-anchor="middle" style="fill:${mine?"var(--goldb)":world?"var(--blue)":"var(--dim)"};font-size:${mine||world?12:10}px">${i===0?12:i}</text>`;}
+  g+=`<circle cx="${cx}" cy="${cy}" r="38" fill="#0c1022" stroke="var(--gold)" stroke-width="1.4"/>
+   <text x="${cx}" y="${cy-4}" text-anchor="middle" style="fill:var(--gold);font-size:9px;letter-spacing:1px">13TH RAY</text>
+   <text x="${cx}" y="${cy+9}" text-anchor="middle" style="fill:var(--parch);font-size:8.5px">CREATIVE FLOW</text>`;
+  svg.innerHTML=g;},
+ renderClock(){this.clockWheel();
+  const info=document.getElementById("clockInfo");if(!info)return;
+  const wr=this.planetRay(),wray=RAYS[wr-1];const pr=this.personalRay();const y=new Date().getFullYear();
+  let h=`<div class="signpost" style="border-left-color:var(--blue)"><b>The planetary cycle — ${y} is the Year of the ${["First","Second","Third","Fourth","Fifth","Sixth","Seventh","Eighth","Ninth","Tenth","Eleventh","Twelfth"][wr-1]} Ray: ${wray.name}.</b><br>
+   <span class="small">${wray.test}. ${this.rayCallText(wr)}</span></div>`;
+  if(pr>0){const ray=RAYS[pr-1];const rev=this.revolutions();
+   h+=`<div class="signpost"><b>Your personal line — age ${this.ageYears()}, walking the ${pr===1?"12→1":`${pr-1}→${pr}`} o'clock line: Ray ${pr}, ${ray.name}.</b><br>
+    <span class="small">The initiation of this year of your life: ${ray.test}. ${this.rayCallText(pr)}</span><br>
+    <span class="small">Revolutions completed: <b>${rev}</b>.${rev>=3?" Three rounds are walked — the <b>centre (13th Ray of Creative Flow)</b> stands open to you: from it, go straight to any line still unresolved. Let the step be intuitive, not decided by the outer mind.":""}</span></div>`;}
+  else h+=`<p class="small">Add your birth date on the welcome screen to see your personal clock line.</p>`;
+  h+=`<p class="small">Mother Mary: focus first on the planetary cycle; if you have attention left, walk both at once — the personal and the planetary.</p>`;
+  info.innerHTML=h;
+  this.renderSynergy();this.renderLevels();},
+ renderSynergy(){const el=document.getElementById("clockSynergy");if(!el)return;
+  const witnesses={};const add=(st,label)=>{if(st<0)return;(witnesses[st]=witnesses[st]||[]).push(label);};
+  add(this.state.natal,"your natal seat (the Grail)");
+  const pr=this.personalRay();if(pr>=1&&pr<=7&&RAYS[pr-1].seat>=0)add(RAYS[pr-1].seat,`your personal clock line (Ray ${pr})`);
+  const wr=this.planetRay();if(wr>=1&&wr<=7&&RAYS[wr-1].seat>=0)add(RAYS[wr-1].seat,`the planetary ray of the year (Ray ${wr})`);
+  add(this.transitIdx(),"today's transit (the Sun's seat)");
+  const rows=Object.entries(witnesses).map(([st,ws])=>({st:+st,ws})).sort((a,b)=>b.ws.length-a.ws.length);
+  el.innerHTML=rows.map(r=>{const s=STATIONS[r.st];const strong=r.ws.length>1;
+   return `<div class="signpost" ${strong?'style="border-left-color:var(--goldb)"':''}>
+    ${sgHTML(r.st,strong?"#eccd6f":"#c9a227",15)} <b>${s.sign}</b> — under ${s.master} · <b>${r.ws.length} witness${r.ws.length>1?"es":""}</b>${strong?" ✦ the pressed seat":""}<br>
+    <span class="small">${r.ws.join(" · ")}</span><br>
+    <span class="small">${strong?`Two or more cycles point here at once — this seat's test is live. Give its nine-verse decree${s.master.includes("Kuan Yin")?"":" to "+s.master} from the Wheel, and keep it daily on the Vigil.`:`One witness — a quieter pressure; its decree is on the Wheel.`}</span>
+    <br><button class="btn ghost" style="margin:8px 0 0;padding:5px 12px" onclick="app.show('home');setTimeout(()=>{document.querySelector('[data-i=\\'${r.st}\\']')?.dispatchEvent(new Event('click'));},60)">Open this seat</button></div>`;}).join("")
+   +`<p class="small" style="margin-top:8px">The full transit picture (every planet's seat) is on <b>The Sky</b> — each transiting planet presses its seat's ray too.</p>`;},
+ renderLevels(){const el=document.getElementById("levelMap");if(!el)return;
+  el.innerHTML=LEVEL_BANDS.map(b=>{
+   if(b.ray){const ray=RAYS[b.ray-1];const seat=ray.seat>=0?STATIONS[ray.seat]:null;
+    return `<div class="signpost"><b>Levels ${b.from}–${b.to} · Ray ${b.ray}: ${ray.name}</b> — under <b>${ray.chohan}</b>${seat?` (his seat: ${seat.sign})`:""}<br>
+     <span class="small">${ray.test}.${seat?` The seat's decree on the Wheel is the working tool for this band.`:" Called directly — the hierarch of the ascension flame."}</span></div>`;}
+   return `<div class="signpost" style="border-left-color:${b.from>=97?"var(--goldb)":"var(--blue)"}"><b>${b.label}</b> — ${b.who}<br><span class="small">${b.note}</span></div>`;}).join("");},
 
  /* ---------- THE VIGIL — a personal working: issue -> masters' answer -> daily decree -> the dream ---------- */
  workingSeat(text){const low=text.toLowerCase();
@@ -761,7 +895,7 @@ The sign that the working is answered usually comes in the night: a dream that r
    try{const r=await fetch("/api/oracle",{method:"POST",headers:{"content-type":"application/json"},
      body:JSON.stringify({question:"A pilgrim lays this issue before the masters and asks for their answer in the manner of the Ascended Master answers, and a daily decree to work on it: "+txt,
        name:this.state.name,dob:this.state.dob,time:this.state.time,place:this.state.place,
-       natal:this.state.natal,transit:this.transitIdx()})});
+       natal:this.state.natal,transit:this.transitIdx(),figure:this.state.figure})});
     if(r.ok){const d=await r.json();if(d.lane&&d.lane!=="none"){w.answer=d.counsel;w.lane=d.lane;}}
    }catch(e){}}
   if(!w.answer)w.answer=this.workingAnswerLocal(w);
@@ -791,6 +925,11 @@ The sign that the working is answered usually comes in the night: a dream that r
   if(el.style.display==="block"){el.style.display="none";return;}
   el.textContent=this.workingDecree(w);el.style.display="block";},
  renderVigil(){const el=document.getElementById("vigilList");if(!el)return;
+  const lede=document.getElementById("vigilLede");
+  if(lede)lede.innerHTML=(this.state.figure==="lady"
+    ?"Before the Grail was borne, the Maiden kept the night-watch."
+    :"Before a knight rode out, he kept the night-watch.")
+   +" Describe the issue, the resistance, the situation you keep meeting — in your own words. It is read in the light of the teachings, the masters answer, and you receive a decree to give <b>daily</b> until the answer comes — often as a dream. When it does, bring the dream to the Dream Gate and it is joined to this working.";
   const ws=[...(this.state.workings||[])].reverse();
   if(!ws.length){el.innerHTML="<p class='small'>No workings yet. Lay an issue before the Table above — the watch begins there.</p>";return;}
   el.innerHTML=ws.map(w=>{const s=STATIONS[w.st];const streak=this.workingStreak(w);
@@ -860,7 +999,7 @@ The sign that the working is answered usually comes in the night: a dream that r
  esc(t){return (t||"").replace(/&/g,"&amp;").replace(/</g,"&lt;");},
  renderChat(){const log=document.getElementById("chatLog");if(!log)return;
   const chat=this.state.chat||[];
-  if(!chat.length){log.innerHTML=`<div class="msg merlin"><div class="who">Merlin</div>Greetings, ${this.esc(this.state.name)||"pilgrim"}. Tell me what stirs in you — a friction, a fear, a question of the path — and we will read it together: what it mirrors, what it asks, and the call that sets it free. Ask me anything.</div>`;return;}
+  if(!chat.length){log.innerHTML=`<div class="msg merlin"><div class="who">Merlin</div>Greetings, ${this.state.name?this.figAddress()+" "+this.esc(this.state.name):"pilgrim"}. Tell me what stirs in you — a friction, a fear, a question of the path — and we will read it together: what it mirrors, what it asks, and the call that sets it free. Ask me anything.</div>`;return;}
   log.innerHTML=chat.map(m=>m.role==="user"
    ? `<div class="msg user">${this.esc(m.text)}</div>`
    : `<div class="msg merlin"><div class="who">Merlin${m.lane&&m.lane!=="built-in"?" · living counsel ("+m.lane+")":""}</div>${this.esc(m.text)}</div>`).join("");
@@ -878,7 +1017,7 @@ The sign that the working is answered usually comes in the night: a dream that r
    try{const r=await fetch("/api/oracle",{method:"POST",headers:{"content-type":"application/json"},
      body:JSON.stringify({messages:this.state.chat.map(m=>({role:m.role,text:m.text})),
        name:this.state.name,dob:this.state.dob,time:this.state.time,place:this.state.place,
-       natal:this.state.natal,transit:this.transitIdx()})});
+       natal:this.state.natal,transit:this.transitIdx(),figure:this.state.figure})});
     if(r.ok){const d=await r.json();if(d.lane&&d.lane!=="none"){reply=d.counsel;lane=d.lane;}}
    }catch(e){}
   }
@@ -909,7 +1048,7 @@ The sign that the working is answered usually comes in the night: a dream that r
    try{
     const r=await fetch("/api/oracle",{method:"POST",headers:{"content-type":"application/json"},
       body:JSON.stringify({question:q,name:this.state.name,dob:this.state.dob,time:this.state.time,
-        place:this.state.place,natal:this.state.natal,transit:this.transitIdx()})});
+        place:this.state.place,natal:this.state.natal,transit:this.transitIdx(),figure:this.state.figure})});
     if(r.ok){const d=await r.json();
      if(d.lane&&d.lane!=="none"){
       o.innerHTML=`<div class="card" style="border-color:var(--gold)">
@@ -1021,8 +1160,9 @@ THE COUNSEL ASKED
   /* text */ x.textAlign="center";
   x.fillStyle="#c9a227";x.font="26px Georgia";x.letterSpacing="10px";
   x.fillText("THE INNER GRAIL",cx,110);x.letterSpacing="0px";
-  x.fillStyle="#f0e7d1";x.font="64px Georgia";x.fillText(this.state.name.toUpperCase(),cx,880);
-  x.fillStyle="#eccd6f";x.font="46px Georgia";x.fillText(`${s.glyph}  The ${s.sign} Seat`,cx,950);
+  x.fillStyle="#f0e7d1";x.font="64px Georgia";x.fillText(this.state.name.toUpperCase(),cx,874);
+  x.fillStyle="#c9a227";x.font="24px Georgia";x.fillText(this.figName().toUpperCase(),cx,908);
+  x.fillStyle="#eccd6f";x.font="46px Georgia";x.fillText(`${s.glyph}  The ${s.sign} Seat`,cx,958);
   x.fillStyle="#98a0bb";x.font="italic 34px Georgia";x.fillText(s.exploit,cx,1010);
   const wrap=(txt,y,maxw)=>{const words=txt.split(" ");let line="",yy=y;
    x.font="italic 28px Georgia";x.fillStyle="#98a0bb";
