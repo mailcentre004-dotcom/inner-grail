@@ -1264,6 +1264,19 @@ In the name of the Divine Mother, I fully accept that the power of these calls i
 
  /* ---------- THE COSMIC CLOCK (Mother Mary, Psychological Clock, Jan 5 2025) ---------- */
  planetRay(){const y=new Date().getFullYear();return ((y-2025)%12+12)%12+1;}, /* 2025=Ray1, 2026=Ray2 */
+ /* the clock's ROUND is a Jupiter cycle (~11.86y); DK: Jupiter transmits the 2nd ray. */
+ jupiterInfo(){if(!window.Astronomy||!this.birthDate())return null;
+  try{const A=window.Astronomy;const nat=A.Ecliptic(A.GeoVector(A.Body.Jupiter,this.birthDate(),true)).elon;
+   const now=new Date();let found=null,best=999;
+   for(let m=2;m<170;m++){const dt=new Date(now.getFullYear(),now.getMonth()+m,15);
+    let j=A.Ecliptic(A.GeoVector(A.Body.Jupiter,dt,true)).elon;let d=Math.abs(j-nat);if(d>180)d=360-d;
+    if(d<best){best=d;if(d<3){found=dt;}}
+    else if(found&&d>6)break;} /* passed the closest approach of this return */
+   const jnow=A.Ecliptic(A.GeoVector(A.Body.Jupiter,now,true)).elon;
+   const age=this.ageYears();const nextRound=(Math.floor(age/12)+1)*12;
+   return {natal:nat,now:jnow,natalSign:Math.floor(nat/30)%12,nowSign:Math.floor(jnow/30)%12,
+    returnDate:found,returnAge:found?found.getFullYear()-this.birthDate().getFullYear():null,nextRound};
+  }catch(e){return null;}},
  ageYears(){if(!this.state.dob)return -1;const b=new Date(this.state.dob+"T00:00:00");const t=new Date();
   let a=t.getFullYear()-b.getFullYear();const m=t.getMonth()-b.getMonth();
   if(m<0||(m===0&&t.getDate()<b.getDate()))a--;return a;},
@@ -1297,6 +1310,12 @@ In the name of the Divine Mother, I fully accept that the power of these calls i
     <span class="small">Revolutions completed: <b>${rev}</b>.${rev>=3?" Three rounds are walked — the <b>centre (13th Ray of Creative Flow)</b> stands open to you: from it, go straight to any line still unresolved. Let the step be intuitive, not decided by the outer mind.":""}</span></div>`;}
   else h+=`<p class="small">Add your birth date on the welcome screen to see your personal clock line.</p>`;
   h+=`<p class="small">Mother Mary: focus first on the planetary cycle; if you have attention left, walk both at once — the personal and the planetary.</p>`;
+  /* the Jupiter cycle behind the round */
+  const J=this.jupiterInfo();
+  if(J){const mon=["Jan","Feb","Mar","Apr","May","Jun","Jul","Aug","Sep","Oct","Nov","Dec"];
+   const rd=J.returnDate?`${mon[J.returnDate.getMonth()]} ${J.returnDate.getFullYear()}`:"—";
+   h+=`<div class="signpost" style="border-left-color:#e8c34a"><b>♃ The round is a Jupiter cycle</b> — each revolution of the twelve ≈ Jupiter's 11.86-yr orbit; DK: <i>Jupiter transmits the 2nd ray, Love-Wisdom</i> — so this Year of Ray 2 is Jupiter's own note.<br>
+    <span class="small">Your natal Jupiter: <b>${STATIONS[J.natalSign].sign}</b> · transiting now: ${STATIONS[J.nowSign].sign}. Your <b>next Jupiter return ≈ ${rd}${J.returnAge?" (age "+J.returnAge+")":""}</b> — which completes your round to age ${J.nextRound}. A Jupiter return = the clock's revolution closing; the harvest of the round.</span></div>`;}
   const rot=this.serviceRotation();
   if(rot){const calls=(this.state.planetCalls||[]).length;const given=(this.state.planetCalls||[]).includes(this.todayKey());
    h+=`<div class="signpost" style="border-left-color:var(--goldb)"><b>♁ The planetary service — the call for the world</b><br>
