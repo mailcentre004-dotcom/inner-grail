@@ -225,6 +225,10 @@
   <div class="card">
     <h2>Your Personal Astrology — read by Master DK</h2>
     <p class="lede">Your birth chart read through <i>Esoteric Astrology</i> (Alice Bailey / Master DK) — not the fortune-telling of the average man, but the soul's reading for one upon the Path. Each placement carries the sign's <b>soul keynote</b> in DK's own words, its ray, and its Chohan. The rising sign is the soul's own intent.</p>
+    <div class="row" style="align-items:center;margin:2px 0 8px">
+      <div style="flex:1"><label>Birth time zone (UTC offset in hours) — needed for an accurate Ascendant</label>
+      <select id="tzSelect" onchange="app.setTz(this.value)" style="width:100%;background:var(--panel2);color:var(--parch);border:1px solid var(--line);border-radius:6px;padding:8px;font-family:var(--serif)"></select></div>
+    </div>
     <div id="natalSoul"></div>
     <div id="natalTable"></div>
     <div id="natalNotes"></div>
@@ -1157,8 +1161,15 @@ In the name of the Divine Mother, I fully accept that the power of these calls i
   const yearRay=this.planetRay();                                 /* 2026 = Ray 2 (Mother Mary, sourced) */
   return {sign,soulRay,planets,counts,pressed,missing,yearRay};},
 
+ setTz(v){this.state.tz=v;this.save();this.renderNatal();this.renderPresence&&this.renderPresence();},
+ fillTzSelect(){const s=document.getElementById("tzSelect");if(!s)return;
+  const cur=(this.state.tz!==undefined&&this.state.tz!=="")?String(this.state.tz):"0";
+  const opts=[["0","UTC / GMT (+0)"],["1","BST / CET (+1)"],["2","EET (+2)"],["3","+3"],["5.5","IST India (+5.5)"],["7","Bangkok (+7)"],["8","+8"],["-5","US Eastern (-5)"],["-8","US Pacific (-8)"]];
+  if(!opts.some(o=>o[0]===cur))opts.push([cur,"("+cur+")"]);
+  s.innerHTML=opts.map(([v,l])=>`<option value="${v}"${v===cur?" selected":""}>${l}</option>`).join("");},
  /* ---------- PERSONAL ASTRO — DK Esoteric Astrology read on the natal ---------- */
  renderNatal(){const soulEl=document.getElementById("natalSoul");if(!soulEl)return;
+  this.fillTzSelect();
   const vedic=this.state.chartMode==="vedic";
   const nat=window.Astronomy?this.planetLons(this.birthDate(),vedic):null;
   if(!nat){soulEl.innerHTML="<p class='small'>Add your birth date on the welcome screen, and open this page in the full app, to see your Esoteric Astrology reading.</p>";
@@ -1191,6 +1202,26 @@ In the name of the Divine Mother, I fully accept that the power of these calls i
   if(STATIONS[ascSign].sign==="Libra"||libra.length){
    notes+=`<div class="signpost" style="border-left-color:#e8c34a"><b>Libra — the sign of Law, Sex &amp; Money</b>${STATIONS[ascSign].sign==="Libra"?" (your rising sign)":""}${libra.length?" · your "+libra.join(", ")+" here":""}<br>
     <span class="small">DK, <i>Esoteric Astrology</i>: Libra is <i>“a governing sign and a major conditioning factor where Law, Sex and Money are concerned”</i> — money being <i>“concretised energy… literally gold… the externalised symbol of that which is created by the bringing together of spirit and matter.”</i> The test is money <i>“selfishly cornered”</i> vs money as concretised divine energy for the whole — released as the path completes.</span></div>`;}
+  /* ---- the money signature (DK-sourced) ---- */
+  const find=n=>nat.find(p=>p.name===n);
+  const sep=(a,b)=>{if(a==null||b==null)return 999;let d=Math.abs(a-b);return d>180?360-d:d;};
+  const jup=find("Jupiter"),ura=find("Uranus"),ven=find("Venus"),sat=find("Saturn");
+  const ascLon=asc!=null?((asc-(vedic?this.ayan(this.birthDate()):0))%360+360)%360:null;
+  const jupUra=jup&&ura?sep(jup.lon,ura.lon):999;
+  const jupAsc=jup&&ascLon!=null?sep(jup.lon,ascLon):999;
+  const uraAsc=ura&&ascLon!=null?sep(ura.lon,ascLon):999;
+  let money=`<h3>Your money signature — the beneficent consummation</h3>`;
+  money+=`<div class="signpost" style="border-left-color:#e8c34a"><span class="small">DK: money is <i>“concretised energy… literally gold… the externalised symbol of that which is created by the bringing together of spirit and matter,”</i> and the 2nd house of finances is <i>“Monetary interchange — Prana.”</i> These are the planets in your chart that carry it:</span></div>`;
+  const mlines=[];
+  if(STATIONS[ascSign].sign==="Libra")mlines.push("<b>Libra rising</b> — your soul-point sits on the very sign DK names as governing <b>Law, Sex &amp; Money</b>.");
+  if(jup)mlines.push(`<b>Jupiter in ${STATIONS[jup.sign].sign}</b>${jupAsc<8?" <b>conjunct your Ascendant</b>":""} — the <i>“beneficent”</i> planet of plenty, 2nd ray of love.`);
+  if(ura)mlines.push(`<b>Uranus in ${STATIONS[ura.sign].sign}</b>${uraAsc<8?" <b>conjunct your Ascendant</b>":""} — the 7th ray <i>“which fuses spirit and matter.”</i>`);
+  if(ven)mlines.push(`<b>Venus in ${STATIONS[ven.sign].sign}</b> — orthodox ruler of both money-signs, Libra and Taurus.`);
+  if(sat&&STATIONS[sat.sign].sign==="Taurus")mlines.push("<b>Saturn in Taurus</b> — the second money-sign; the substance, desire transmuted into value.");
+  money+=`<div class="signpost">${mlines.map(l=>"• "+l).join("<br>")}</div>`;
+  if(jupUra<10){money+=`<div class="signpost" style="border-left-color:var(--goldb)"><b>♃☌♅ Jupiter conjunct Uranus (${jupUra.toFixed(1)}°) — the crown.</b><br>
+    <span class="small">DK: <i>“Jupiter and Uranus — planets of beneficent consummation… the second ray of love and the seventh ray which fuses spirit and matter… in the fullest eventual cooperation.”</i> And: <i>“at the fifth and final initiation, Uranus and Jupiter appear and produce a ‘beneficent organisation’ of the totality of energies found in the initiate's equipment.”</i> The two planets DK names for the <b>fifth initiation's beneficent consummation</b> are conjunct in your natal chart${(jupAsc<8||uraAsc<8)?", on your soul-purpose point":""} — spirit fused into matter, which is money itself. Released as the beneficent organisation of the path's completion, not cornered before.</span></div>`;}
+  notes+=money;
   notes+=`<p class="small">This is the initiate's reading (Tabulation V, the esoteric rulers), not the average man's (Tabulation IV) — DK gives “two sets of rulers for two types of people.” The Sky page shows both; the Presence page maps the rays to the year's purification.</p>`;
   document.getElementById("natalNotes").innerHTML=notes;},
 
@@ -2044,7 +2075,10 @@ THE COUNSEL ASKED
  birthDate(){if(!this.state.dob)return null;
   const p=this.state.dob.split("-").map(Number);let hh=12,mm=0;
   const t=(this.state.time||"").match(/(\d{1,2})\D?(\d{2})?/);if(t){hh=+t[1];mm=t[2]?+t[2]:0;}
-  return new Date(Date.UTC(p[0],p[1]-1,p[2],hh,mm,0));},
+  /* birth time is CIVIL/LOCAL; convert to UTC using the birth UTC-offset (hours east).
+     Without this the ascendant is wrong (a 1h error can shift it a whole sign). */
+  const tz=(this.state.tz!==undefined&&this.state.tz!=="")?Number(this.state.tz):0;
+  return new Date(Date.UTC(p[0],p[1]-1,p[2],hh,mm,0)-tz*3600000);},
  ayan(date){const y=date.getUTCFullYear()+date.getUTCMonth()/12;return 23.85+(y-2000)*0.013969;},
  planetLons(date,sidereal){if(!window.Astronomy||!date)return null;
   const A=window.Astronomy,ay=sidereal?this.ayan(date):0,out=[];
