@@ -219,6 +219,18 @@
   </div>
 </div>
 
+<!-- ==================== PERSONAL ASTRO (DK Esoteric Astrology) ==================== -->
+<div class="screen" id="natal">
+  <div style="height:18px"></div>
+  <div class="card">
+    <h2>Your Personal Astrology — read by Master DK</h2>
+    <p class="lede">Your birth chart read through <i>Esoteric Astrology</i> (Alice Bailey / Master DK) — not the fortune-telling of the average man, but the soul's reading for one upon the Path. Each placement carries the sign's <b>soul keynote</b> in DK's own words, its ray, and its Chohan. The rising sign is the soul's own intent.</p>
+    <div id="natalSoul"></div>
+    <div id="natalTable"></div>
+    <div id="natalNotes"></div>
+  </div>
+</div>
+
 <!-- ==================== THE PRESENCE (Vitruvian chart) ==================== -->
 <div class="screen" id="presence">
   <div style="height:18px"></div>
@@ -434,6 +446,7 @@
   <button data-s="home"><span class="ic">◉</span>Wheel</button>
   <button data-s="today"><span class="ic">☀</span>Today</button>
   <button data-s="chart"><span class="ic">☉</span>Sky</button>
+  <button data-s="natal"><span class="ic">✴</span>Natal</button>
   <button data-s="presence"><span class="ic">☥</span>Presence</button>
   <button data-s="clock"><span class="ic">◷</span>Clock</button>
   <button data-s="invoke"><span class="ic">☩</span>Invoke</button>
@@ -618,6 +631,21 @@ const DK_PLANET_RAY={Vulcan:1,Pluto:1,Jupiter:2,Sun:2,Earth:3,Saturn:3,Mercury:4
 const DK_RAY={1:"Power / Will",2:"Love-Wisdom",3:"Active Intelligence",4:"Harmony through Conflict",
  5:"Concrete Science",6:"Devotion / Idealism",7:"Ceremonial Order / Magic"};
 const CHOHAN={1:"Master MORE",2:"Master Lanto",3:"Paul the Venetian",4:"Serapis Bey",5:"Hilarion",6:"Lady Master Nada",7:"Saint Germain"};
+/* DK's soul keynote for each sign (Esoteric Astrology, verbatim) — index 0=Aries..11=Pisces */
+const DK_SOUL_KEYNOTE=[
+ "I come forth and from the plane of mind, I rule.",
+ "I see, and when the eye is opened, all is illumined.",
+ "I recognise my other self and in the waning of that self, I grow and glow.",
+ "I build a lighted house and therein dwell.",
+ "I am That and That am I.",
+ "I am the mother and the child. I, God, I, matter am.",
+ "I choose the way which leads between the two great lines of force.",
+ "Warrior I am and from the battle I emerge triumphant.",
+ "I see the goal. I reach that goal and then I see another.",
+ "Lost am I in light supernal, yet on that light I turn my back.",
+ "Water of life am I, poured forth for thirsty men.",
+ "I leave the Father's home and turning back, I save.",
+];
 
 /* THE 15 RAYS — Mother Mary, "The Psychological Clock" (Jan 5 2025): 12 lines = rays 1-12,
    13th=Creative Flow (centre), 14th=Sharing Your Presence (circle), 15th=the unconditional background.
@@ -843,6 +871,7 @@ const app={
   if(id==="dreams")this.renderDiary();
   if(id==="vigil")this.renderVigil();
   if(id==="clock")this.renderClock();
+  if(id==="natal")this.renderNatal();
   if(id==="presence")this.renderPresence();
   if(id==="book")this.renderBook();
   if(id==="me"){this.renderTimeline();this.fillSeatSelect();}
@@ -1127,6 +1156,43 @@ In the name of the Divine Mother, I fully accept that the power of these calls i
   const missing=[1,2,3,4,5,6,7].filter(r=>!counts[r]);            /* the silent notes — to be called in */
   const yearRay=this.planetRay();                                 /* 2026 = Ray 2 (Mother Mary, sourced) */
   return {sign,soulRay,planets,counts,pressed,missing,yearRay};},
+
+ /* ---------- PERSONAL ASTRO — DK Esoteric Astrology read on the natal ---------- */
+ renderNatal(){const soulEl=document.getElementById("natalSoul");if(!soulEl)return;
+  const vedic=this.state.chartMode==="vedic";
+  const nat=window.Astronomy?this.planetLons(this.birthDate(),vedic):null;
+  if(!nat){soulEl.innerHTML="<p class='small'>Add your birth date on the welcome screen, and open this page in the full app, to see your Esoteric Astrology reading.</p>";
+   document.getElementById("natalTable").innerHTML="";document.getElementById("natalNotes").innerHTML="";return;}
+  const asc=this.state.time?this.ascendant(this.birthDate(),51.8,-0.2):null; /* coords TODO from birthplace; owner=WGC */
+  const ascSign=asc!=null?Math.floor(((asc-(vedic?this.ayan(this.birthDate()):0))%360+360)%360/30)%12:this.state.natal;
+  const eso=DK_ESO[STATIONS[ascSign].sign],esoRay=DK_PLANET_RAY[eso];
+  /* the soul-purpose point = the rising sign (or Sun if no birth time) */
+  soulEl.innerHTML=`<div class="signpost" style="border-left-color:var(--goldb)">
+    <b>The soul's intent — your ${asc!=null?"Rising sign":"Sun sign"}: ${sgHTML(ascSign,'#eccd6f',16)} ${STATIONS[ascSign].sign}</b><br>
+    <span style="color:var(--parch)">DK's soul keynote: “${DK_SOUL_KEYNOTE[ascSign]}”</span><br>
+    <span class="small">DK: the rising sign holds the soul's purpose for this life. Its <b>esoteric ruler ${eso} → Ray ${esoRay} (${DK_RAY[esoRay]}), under ${CHOHAN[esoRay]}</b> — the ray your deeper life works upon. ${vedic?"(Vedic/sidereal)":"(Western/tropical)"} · switch the zodiac on The Sky.</span></div>`;
+  /* the placement table */
+  const rows=nat.map(p=>{const sg=STATIONS[p.sign].sign;const or=DK_ORTHO[sg],er=DK_ESO[sg],erRay=DK_PLANET_RAY[er];
+   return `<tr><td><b>${p.name}</b></td><td>${sgHTML(p.sign,'#c9a227',13)} ${sg}</td><td class="small">“${DK_SOUL_KEYNOTE[p.sign]}”</td><td>orthodox ${or[0]}→R${or[1]} · eso ${er}→<span style="color:${(this.RAYCOL[erRay]||['#c9a227'])[0]}">R${erRay}</span></td></tr>`;}).join("");
+  document.getElementById("natalTable").innerHTML=`<h3>Your placements — the soul reading</h3>
+   <div class="tablewrap"><table><tr><th>Planet</th><th>Sign</th><th>Soul keynote (DK)</th><th>Ray (orthodox · esoteric)</th></tr>${rows}</table></div>`;
+  /* the crosses + the money note (DK, sourced) */
+  const CROSS={Aries:"Cardinal",Cancer:"Cardinal",Libra:"Cardinal",Capricorn:"Cardinal",
+   Taurus:"Fixed",Leo:"Fixed",Scorpio:"Fixed",Aquarius:"Fixed",
+   Gemini:"Mutable",Virgo:"Mutable",Sagittarius:"Mutable",Pisces:"Mutable"};
+  const cc={Cardinal:0,Fixed:0,Mutable:0};nat.forEach(p=>cc[CROSS[STATIONS[p.sign].sign]]++);
+  const domCross=Object.entries(cc).sort((a,b)=>b[1]-a[1])[0][0];
+  const crossNote={Cardinal:"the Cardinal Cross — of initiation and the outgoing soul-purpose; the cross of those who begin and drive the cycle.",
+   Fixed:"the Fixed Cross — of the disciple and discipleship; the cross of tests, held steady through the fire until the soul triumphs.",
+   Mutable:"the Mutable Cross — of ordinary humanity and adaptation; the cross of change, preparing the field for the Fixed Cross of discipleship."};
+  let notes=`<h3>Your dominant cross</h3><div class="signpost"><b>${domCross} (${cc[domCross]} placements)</b> — ${crossNote[domCross]}</div>`;
+  /* Libra money note if Libra prominent (Asc or any planet) */
+  const libra=nat.filter(p=>STATIONS[p.sign].sign==="Libra").map(p=>p.name);
+  if(STATIONS[ascSign].sign==="Libra"||libra.length){
+   notes+=`<div class="signpost" style="border-left-color:#e8c34a"><b>Libra — the sign of Law, Sex &amp; Money</b>${STATIONS[ascSign].sign==="Libra"?" (your rising sign)":""}${libra.length?" · your "+libra.join(", ")+" here":""}<br>
+    <span class="small">DK, <i>Esoteric Astrology</i>: Libra is <i>“a governing sign and a major conditioning factor where Law, Sex and Money are concerned”</i> — money being <i>“concretised energy… literally gold… the externalised symbol of that which is created by the bringing together of spirit and matter.”</i> The test is money <i>“selfishly cornered”</i> vs money as concretised divine energy for the whole — released as the path completes.</span></div>`;}
+  notes+=`<p class="small">This is the initiate's reading (Tabulation V, the esoteric rulers), not the average man's (Tabulation IV) — DK gives “two sets of rulers for two types of people.” The Sky page shows both; the Presence page maps the rays to the year's purification.</p>`;
+  document.getElementById("natalNotes").innerHTML=notes;},
 
  /* ---------- THE CHART OF YOUR PRESENCE (Vitruvian figure + I AM Presence + the rays) ---------- */
  renderPresence(){const svg=document.getElementById("presenceFig");if(!svg)return;
